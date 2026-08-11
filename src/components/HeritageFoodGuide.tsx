@@ -259,7 +259,7 @@ export const HeritageFoodGuide: React.FC<HeritageFoodGuideProps> = ({ lang, onSe
               <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
                 {isRtl 
-                  ? 'تم اختيار وتحديد هذه الأطباق بناءً على الوصفات التاريخية المعتمدة للمنطقة والمطاعم الأكثر حواوزاً لرضا الزوار.'
+                  ? 'تم اختيار وتحديد هذه الأطباق بناءً على الوصفات التاريخية المعتمدة للمنطقة والمطاعم الأكثر حصولاً على رضا الزوار.'
                   : 'Selected based on certified regional recipes and top visitor ratings.'}
               </span>
             </div>

@@ -96,9 +96,44 @@ export const MultimodalScanner: React.FC<MultimodalScannerProps> = ({ lang }) =>
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setSelectedImage(base64);
-        analyzeImageServer(base64);
+        const rawBase64 = event.target?.result as string;
+        
+        // Compress image using canvas before sending
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            setSelectedImage(compressedBase64);
+            analyzeImageServer(compressedBase64);
+          } else {
+            setSelectedImage(rawBase64);
+            analyzeImageServer(rawBase64);
+          }
+        };
+        img.onerror = () => {
+          setSelectedImage(rawBase64);
+          analyzeImageServer(rawBase64);
+        };
+        img.src = rawBase64;
       };
       reader.readAsDataURL(file);
     }

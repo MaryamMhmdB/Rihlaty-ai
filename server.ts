@@ -47,6 +47,42 @@ const getGeminiClient = () => {
   });
 };
 
+// Robust Gemini execution helper with automatic model fallback for 429 quota/rate-limits
+async function generateContentWithFallback(ai: GoogleGenAI, requestOptions: { contents: any; config?: any }) {
+  const modelCandidates = [
+    "gemini-3.6-flash",
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite"
+  ];
+
+  let lastError: any = null;
+
+  for (const model of modelCandidates) {
+    try {
+      const response = await ai.models.generateContent({
+        ...requestOptions,
+        model,
+      });
+
+      if (response && response.text) {
+        return response;
+      }
+    } catch (err: any) {
+      lastError = err;
+      const errorMsg = err?.message || String(err);
+      const isQuotaOrRateLimit = err?.status === 429 || errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("RESOURCE_EXHAUSTED");
+
+      if (isQuotaOrRateLimit) {
+        console.warn(`[Gemini API] Model '${model}' quota/rate-limit hit (429). Trying next candidate...`);
+      } else {
+        console.warn(`[Gemini API] Model '${model}' call failed (${errorMsg}). Trying next candidate...`);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 // API: Health Check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", app: "Rihlaty AI", time: new Date().toISOString() });
@@ -274,8 +310,7 @@ Return ONLY a JSON object matching this schema:
 }
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await generateContentWithFallback(ai, {
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -423,20 +458,24 @@ app.post("/api/analyze-image", async (req, res) => {
 
   if (ai && imageBase64) {
     try {
+      let mimeType = "image/jpeg";
+      const mimeMatch = imageBase64.match(/^data:(image\/\w+);base64,/);
+      if (mimeMatch && mimeMatch[1]) {
+        mimeType = mimeMatch[1];
+      }
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+      const response = await generateContentWithFallback(ai, {
         contents: {
           parts: [
             {
               inlineData: {
-                mimeType: "image/jpeg",
+                mimeType: mimeType,
                 data: cleanBase64,
               },
             },
             {
-              text: `Analyze this image of a landmark or heritage item in Saudi Arabia. 
+              text: `Analyze this image of a landmark, historical place, architectural site, traditional restaurant/dish, or heritage item in Saudi Arabia. 
 Identify what it is, its historical context, cultural significance, and nearby recommendations.
 Provide responses in both Arabic and English JSON format with fields:
 {
@@ -444,14 +483,14 @@ Provide responses in both Arabic and English JSON format with fields:
   "titleEn": "Landmark Name in English",
   "locationAr": "الموقع في السعودية",
   "locationEn": "Location in Saudi Arabia",
-  "historicalInfoAr": "نبذة تاريخية مفصلة",
-  "historicalInfoEn": "Detailed historical context",
+  "historicalInfoAr": "نبذة تاريخية مفصلة والمعلومات الثقافية",
+  "historicalInfoEn": "Detailed historical and cultural context",
   "culturalImportanceAr": "الأهمية الثقافية للتراث السعودي",
   "culturalImportanceEn": "Cultural importance to Saudi heritage",
   "nearbyPlacesAr": ["مكان قريب 1", "مكان قريب 2"],
   "nearbyPlacesEn": ["Nearby Place 1", "Nearby Place 2"],
-  "sourceAr": "المصدر: هيئة التراث / دارة الملك عبد العزیز",
-  "sourceEn": "Source: Saudi Heritage Authority / King Abdulaziz Foundation"
+  "sourceAr": "المصدر: هيئة التراث / وزارة الثقافة",
+  "sourceEn": "Source: Saudi Heritage Authority / Ministry of Culture"
 }`
             }
           ]
