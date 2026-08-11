@@ -158,7 +158,7 @@ function getCityData(dest: string) {
 
 // API: Generate Itinerary with Gemini
 app.post("/api/generate-itinerary", async (req, res) => {
-  const { destination, duration, mobility, interests, preferences, date, time, notes, lang } = req.body;
+  const { destination, duration, mobility, budget, interests, preferences, date, time, notes, lang } = req.body;
 
   const isArabic = lang !== "en";
   const cityData = getCityData(destination);
@@ -180,13 +180,21 @@ Destination Verified Real-Time Context:
 Constraints & Preferences:
 - Available Time: ${duration || '5h'}
 - Mobility Needs: ${mobility || 'none'}
+- Budget Level: ${budget || 'medium'} (economic = popular street & traditional dining, budget-friendly/free heritage spots; medium = balanced popular dining & key attractions; luxury = fine dining, upscale heritage venues & premium experiences)
 - User Interests: ${Array.isArray(interests) ? interests.join(', ') : 'التاريخ والتراث'}
 - User Preferences: ${Array.isArray(preferences) ? preferences.join(', ') : 'أماكن هادئة'}
 - Date & Start Time: ${date || '2026-08-08'} at ${time || '09:00'}
 - Additional Notes: ${notes || 'None'}
 
-CRITICAL STRICT RULES FOR ACCURACY, GOOGLE MAPS & PRAYER:
-1. REAL & VERIFIABLE LOCATIONS ONLY:
+CRITICAL MULTI-DAY & ACCURACY RULES:
+1. MULTI-DAY ITINERARY STRUCTURE (STRICT ZERO REPETITION):
+   - If Available Time is multi-day (e.g., "3 أيام" or "5 Days"), you MUST generate a comprehensive day-by-day plan covering all requested days.
+   - Every item MUST include "dayNumber" (1, 2, 3...) corresponding to its day.
+   - In "time", prefix with the day label if multi-day, e.g. "[اليوم 1] 09:30" or "[Day 1] 09:30".
+   - ABSOLUTELY ZERO REPETITION ACROSS DAYS: Day 1, Day 2, Day 3, etc., MUST feature COMPLETELY DIFFERENT real landmarks, museums, markets, cafes, and dining spots in the selected city.
+   - NEVER repeat the exact same attraction, restaurant, or routine on multiple days. Every day must be a distinct, fresh exploration.
+
+2. REAL & VERIFIABLE LOCATIONS ONLY:
    - ALL LOCATIONS MUST BE SPECIFIC REAL-WORLD LANDMARKS, ATTRACTIONS, CAFES, RESTAURANTS AND MOSQUES IN ${cityData.nameAr} / ${cityData.nameEn}.
    - ABSOLUTELY NEVER INVENT OR HALLUCINATE PLACES (no "Central Heritage Park", "City Museum", "Main Square").
    - EVERY location MUST belong strictly to ${cityData.nameAr} / ${cityData.nameEn}.
@@ -286,7 +294,7 @@ Return ONLY a JSON object matching this schema:
   }
 
   // Fallback intelligent itinerary generation when API key isn't provided or fails
-  const mockItinerary = generateFallbackItinerary(destination, duration, mobility, isArabic);
+  const mockItinerary = generateFallbackItinerary(destination, duration, mobility, isArabic, budget);
   res.json({ success: true, data: mockItinerary, isFallback: true });
 });
 
@@ -456,234 +464,363 @@ Provide responses in both Arabic and English JSON format with fields:
   res.json({ success: true, data: fallbackAnalysis, isFallback: true });
 });
 
-// Helper for generating custom fallback itinerary based on inputs
-function generateFallbackItinerary(destName: string, duration: string, mobility: string, isArabic: boolean) {
+// Helper for generating custom fallback itinerary based on inputs with unique items per day
+function getCityDayItems(cityName: string, day: number, cityData: any, isWheelchair: boolean) {
+  const lower = cityName.toLowerCase();
+
+  let dayPlan: {
+    l1Ar: string; l1En: string;
+    cAr: string; cEn: string;
+    mAr: string; mEn: string;
+    dAr: string; dEn: string;
+    l5Ar: string; l5En: string;
+    t1Ar?: string; t1En?: string;
+    t5Ar?: string; t5En?: string;
+  };
+
+  if (lower.includes("رياض") || lower.includes("riyadh")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "قصر المصمك وسوق الزل بالديرة", l1En: "Al-Masmak Fortress & Souk Al-Zal in Deera",
+        cAr: "مقهى كفة وديرة للتراث بالديرة", cEn: "Deera Heritage & Kaffa Cafe",
+        mAr: "جامع الإمام تركي بن عبدالله بالديرة", mEn: "Imam Turki bin Abdullah Grand Mosque",
+        dAr: "مطعم القرية النجدية بالديرة", dEn: "Najd Village Heritage Restaurant",
+        l5Ar: "المتحف الوطني السعودي وقصر المربع", l5En: "National Museum & Al-Murabba Palace",
+        t1Ar: "جولة المعالم والأسواق التراثية القديمة", t1En: "Old Heritage Landmarks & Souk Tour",
+        t5Ar: "استكشاف المتحف الوطني والقصر التاريخي", t5En: "National Museum & Royal Heritage Walk"
+      };
+    } else if (day === 2) {
+      dayPlan = {
+        l1Ar: "حي الطريف التاريخي بآل بجيري بالدرعية (يونسكو)", l1En: "At-Turaif UNESCO Heritage Site in Diriyah",
+        cAr: "مقهى مطل البجيري بالدرعية", cEn: "Al-Bujairi Promenade Cafe",
+        mAr: "جامع الإمام محمد بن عبدالوهاب بالدرعية", mEn: "Diriyah Imam Grand Mosque",
+        dAr: "مطعم سهيل للضيافة النجدية بالدرعية", dEn: "Suhail Diriyah Heritage Restaurant",
+        l5Ar: "منتزه وادي حنيفة ومطلات الدرعية الجبلية", l5En: "Wadi Hanifa Park & Diriyah Lookouts",
+        t1Ar: "جولة جوهرة المملكة التراثية بالدرعية", t1En: "Diriyah Heritage Jewel Exploration",
+        t5Ar: "استكشاف طبيعة وادي حنيفة والمطلات", t5En: "Wadi Hanifa Nature & Promenade Walk"
+      };
+    } else if (day === 3) {
+      dayPlan = {
+        l1Ar: "منطقة بوليفارد سيتي والممشى الحديث", l1En: "Boulevard City & Modern Promenade",
+        cAr: "مقهى باحة بوليفارد للقهوة المختصة", cEn: "Boulevard Oasis Specialty Cafe",
+        mAr: "جامع الراجحي الكبير بالرياض", mEn: "Al-Rajhi Grand Mosque in Riyadh",
+        dAr: "مطعم الرومانسية للمأكولات النجدية الأصيلة", dEn: "Al-Romainsiah Traditional Restaurant",
+        l5Ar: "واجهة الرياض الثقافية وسوق المتاجر", l5En: "Riyadh Front Cultural Promenade",
+        t1Ar: "جولة التجربة المعاصرة والترفيه", t1En: "Modern City Exploration & Cultural Front",
+        t5Ar: "تسوق معروضات التراث والمتاجر الثقافية", t5En: "Cultural Shopping & Promenade Walk"
+      };
+    } else if (day === 4) {
+      dayPlan = {
+        l1Ar: "منطقة قصر الحكم وسوق المقيبرة التراثي", l1En: "Qasr Al-Hokm District & Muqeibra Souk",
+        cAr: "مقهى شمس التراثي بالرياض", cEn: "Shams Heritage Cafe Riyadh",
+        mAr: "جامع قصر الحكم التاريخي", mEn: "Historic Qasr Al-Hokm Mosque",
+        dAr: "مطعم كبسة الديرة ومأكولات التراث", dEn: "Kabsa Al-Deera Heritage Dining",
+        l5Ar: "منتزه وادي نمار وشلالات نمار الطبيعية", l5En: "Wadi Namar Park & Natural Waterfalls",
+        t1Ar: "جولة قلب العاصمة والأسواق التاريخية", t1En: "Capital Heart & Souk Heritage Walk",
+        t5Ar: "جولة بحيرة نمار والتنزه بين الشلالات", t5En: "Wadi Namar Waterfall & Lake Stroll"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "مطل جبال طويق (حافة العالم)", l1En: "Tuwaiq Mountain Viewpoint (Edge of the World)",
+        cAr: "مقهى مطلات طويق بالرياض", cEn: "Tuwaiq Lookouts Cafe",
+        mAr: "جامع العلب التاريخي بالدرعية", mEn: "Historic Al-Olab Mosque Diriyah",
+        dAr: "مطعم بيت عمر ومأكولات الضيافة", dEn: "Beit Omar Traditional Restaurant",
+        l5Ar: "سوق أثري للتراث الشعبي وسوق الطيبين", l5En: "Al-Tayibeen Heritage Souk & Antiques",
+        t1Ar: "مغامرة مطلات طويق وجبال الرياض", t1En: "Tuwaiq Escarpment Nature Sightseeing",
+        t5Ar: "جولة التحف والنوادر التراثية النجدية", t5En: "Antiques & Heritage Craft Exhibition"
+      };
+    }
+  } else if (lower.includes("جدة") || lower.includes("jeddah")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "منطقة البلد التاريخية وبيت نصيف", l1En: "Al-Balad Historic District & Naseef House",
+        cAr: "مقهى كافيهات البلد التراثية", cEn: "Al-Balad Heritage Cafe",
+        mAr: "جامع الشافعي التاريخي بالبلد", mEn: "Historic Al-Shafei Mosque in Al-Balad",
+        dAr: "مطعم السدّة ومأكولات التراث الحجازي", dEn: "Al-Saddah Traditional Hijazi Dining",
+        l5Ar: "واجهة كورنيش جدة والمسجد العائم (مسجد الرحمة)", l5En: "Jeddah Corniche & Al-Rahmah Floating Mosque",
+        t1Ar: "جولة جدة التاريخية والأزقة العريقة", t1En: "Historic Al-Balad Ancient Alleyways",
+        t5Ar: "استكشاف الواجهة البحرية والمسجد العائم", t5En: "Jeddah Waterfront & Floating Mosque Walk"
+      };
+    } else if (day === 2) {
+      dayPlan = {
+        l1Ar: "متحف عبد الرؤوف خليل للتراث والتاريخ", l1En: "Abdul Raouf Khalil Museum & Heritage Complex",
+        cAr: "مقهى تراث الحجاز بالكورنيش الأوسط", cEn: "Mid-Corniche Hijazi Cafe",
+        mAr: "جامع حسن عنقري بالكورنيش", mEn: "Hassan Anqari Mosque Corniche",
+        dAr: "مطعم بلدي للمأكولات البحرية الحجازية", dEn: "Baladi Traditional Seafood Restaurant",
+        l5Ar: "فقيه أكواريوم وممشى الكورنيش الأوسط", l5En: "Fakieh Aquarium & Middle Corniche Promenade",
+        t1Ar: "جولة المعالم المتاحف والتاريخ الحجازي", t1En: "Hijazi Museums & Cultural Heritage Tour",
+        t5Ar: "جولة الأحياء البحرية والغروب بجدة", t5En: "Aquarium Visit & Waterfront Sunset Walk"
+      };
+    } else if (day === 3) {
+      dayPlan = {
+        l1Ar: "منطقة جدة آرت بروميناد والمرسى البحري", l1En: "Jeddah Art Promenade & Marina",
+        cAr: "مقهى باحة الممشى البحري بجدة", cEn: "Jeddah Promenade Coastal Cafe",
+        mAr: "جامع التقوى الشاطئي", mEn: "Al-Taqwa Seaside Mosque",
+        dAr: "مطعم الشامي للمأكولات البحرية والتقليدية", dEn: "Al-Shami Seafood & Traditional Restaurant",
+        l5Ar: "سوق الشاطئ الشعبي والمعارض التراثية", l5En: "Al-Shati Traditional Souk & Exhibition",
+        t1Ar: "جولة الفنون البحرية والمرسى الحديث", t1En: "Coastal Arts & Marina Promenade Tour",
+        t5Ar: "تسوق الحرف البحرية والأسوق الشعبية", t5En: "Seaside Souk & Handicraft Exploration"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "منطقة أبحر الشمالية ومرسى اليخوت", l1En: "North Obhur Marina & Coastal Promenade",
+        cAr: "مقهى جليبي للتراث الساحلي", cEn: "Coastal Heritage Cafe Obhur",
+        mAr: "جامع خادم الحرمين الشريفين بجدة", mEn: "King Haramain Mosque Jeddah",
+        dAr: "مطعم أسماك الثروة البحرية بأبحر", dEn: "Obhur Seafood & Fish Dining",
+        l5Ar: "متحف الطيبات للعلوم والمعرفة والتراث", l5En: "Al-Tayebat City Museum for International Heritage",
+        t1Ar: "جولة مرسى أبحر والشواطئ الهادئة", t1En: "Obhur Coast & Marine Promenade Tour",
+        t5Ar: "جولة متحف الطيبات ومقتنيات الحضارات", t5En: "Al-Tayebat International Cultural Museum"
+      };
+    }
+  } else if (lower.includes("علا") || lower.includes("alula")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "موقع الحجر الأثري (مدائن صالح - يونسكو)", l1En: "Hegra UNESCO World Heritage Site",
+        cAr: "مقهى واحة العلا ومحمية الحجر", cEn: "AlUla Oasis Heritage Cafe",
+        mAr: "مسجد البلدة القديمة بالعلا", mEn: "AlUla Old Town Mosque",
+        dAr: "مطعم سهيل للضيافة بالعلا", dEn: "Suhail Heritage Restaurant AlUla",
+        l5Ar: "البلدة القديمة وجبل الفيل بالعلا", l5En: "AlUla Old Town & Elephant Rock",
+        t1Ar: "استكشاف مقابر النبطيين بآثار الحجر", t1En: "Nabataean Tombs & Hegra Heritage Tour",
+        t5Ar: "جولة البلدة القديمة وجبل الفيل عند الغروب", t5En: "Old Town Walk & Elephant Rock Sunset"
+      };
+    } else if (day === 2) {
+      dayPlan = {
+        l1Ar: "موقع دادان الأثري ومقابر الأسود ومملكة لحيان", l1En: "Dadan Ancient City & Lion Tombs",
+        cAr: "مقهى باحة جبل إثلب بالعلا", cEn: "Jabal Ithlib Oasis Cafe",
+        mAr: "مسجد العظام التاريخي بالعلا", mEn: "Historic Bone Mosque AlUla",
+        dAr: "مطعم مطبخ الواحة النخيلية", dEn: "Palm Oasis Kitchen AlUla",
+        l5Ar: "قاعة مرايا ومنطقة مسرح العشار", l5En: "Maraya Concert Hall & Ashar Valley",
+        t1Ar: "استكشاف آثار دادان والنقوش الجبلية", t1En: "Dadan Kingdom Archaeology & Inscriptions",
+        t5Ar: "زيارة قاعة مرايا زجاجية والتصميم المعماري", t5En: "Maraya Architectural Marvel & Ashar Tour"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "جبل الحوارة ومسار جبال الغراميل", l1En: "Gharameel Rock Formations & Desert Trail",
+        cAr: "مقهى ممشى العلا الثقافي", cEn: "AlUla Cultural Walkway Cafe",
+        mAr: "جامع العلا الكبير", mEn: "AlUla Grand Mosque",
+        dAr: "مطعم ضيافة العلا النبطية", dEn: "Nabataean Hospitality Dining AlUla",
+        l5Ar: "محمية شرعان الطبيعية ووادي العشار", l5En: "Sharaan Nature Reserve & Canyon Trail",
+        t1Ar: "جولة جبال الغراميل العجيبة والصحراء", t1En: "Gharameel Desert Rock Formations Sightseeing",
+        t5Ar: "استكشاف الطبيعة والحيوانات بمحمية شرعان", t5En: "Sharaan Nature Reserve Wilderness Walk"
+      };
+    }
+  } else if (lower.includes("أبها") || lower.includes("abha")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "قرية رجال ألمع التراثية ومتحف ألمع", l1En: "Rijal Almaa Heritage Village & Museum",
+        cAr: "مقهى مطل الجبل الأخضر", cEn: "Green Mountain Lookout Cafe",
+        mAr: "جامع الملك فهد بأبها", mEn: "King Fahd Grand Mosque Abha",
+        dAr: "مطعم الضيافة العسيرية بأبها", dEn: "Traditional Aseer Hospitality Restaurant",
+        l5Ar: "حي النصب التراثي وممشى الضباب", l5En: "Al-Nassab Heritage District & Fog Walkway",
+        t1Ar: "جولة قرية رجال ألمع وقصور الحجر", t1En: "Rijal Almaa Ancient Stone Palaces",
+        t5Ar: "جولة بين سحب وممشى الضباب البارد", t5En: "Fog Walkway & Mountain Mist Exploration"
+      };
+    } else if (day === 2) {
+      dayPlan = {
+        l1Ar: "قرية مفتاحة التراثية وسوق الثلاثاء الشعبي", l1En: "Muftaha Heritage Village & Tuesday Souk",
+        cAr: "مقهى الممشى العسيري بأبها", cEn: "Aseer Promenade Heritage Cafe",
+        mAr: "جامع العسيري التاريخي", mEn: "Historic Aseeri Mosque",
+        dAr: "مطعم الحنيذ الجنوبي بأبها", dEn: "Southern Haneedh Heritage Restaurant",
+        l5Ar: "منتزه السودة وجبل السحاب العالي", l5En: "Al-Soudah Park & Cloud Mountain Peak",
+        t1Ar: "جولة الفنون والأسواق الشعبية القديمة", t1En: "Traditional Crafts & Cultural Souk Walk",
+        t5Ar: "صعود منتزه السودة وإطلالات جبال الحجاز", t5En: "Al-Soudah Mountain Peak & Scenic Overlook"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "قصور أبو نقطة المتحمي بطبب التاريخية", l1En: "Abu Nuqta Heritage Palaces in Tabab",
+        cAr: "مقهى المطلات الجبلية بأبها", cEn: "Mountain Lookouts Cafe Abha",
+        mAr: "جامع طبب التاريخي الأثري", mEn: "Historic Tabab Ancient Mosque",
+        dAr: "مطعم السودة للضيافة التراثية", dEn: "Al-Soudah Traditional Dining",
+        l5Ar: "منتزه أبا الخيال ومطل سد أبها", l5En: "Abu Khayal Park & Abha Dam Lake Overlook",
+        t1Ar: "جولة تاريخ طبب والقصور العسيرية الأثرية", t1En: "Tabab Ancient Palaces & Citadel Tour",
+        t5Ar: "جولة بحيرة السد والتلفريك بأبها", t5En: "Abha Dam Lake & Cable Car Overlook"
+      };
+    }
+  } else if (lower.includes("طائف") || lower.includes("taif")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "قصر شبرا التاريخي وسوق الطائف القديم", l1En: "Shubra Palace & Historic Taif Souk",
+        cAr: "مقهى ومزارع الورد الطائفي", cEn: "Taif Rose Farm & Heritage Cafe",
+        mAr: "جامع عبدالله بن عباس التاريخي", mEn: "Historic Ibn Abbas Mosque",
+        dAr: "مطعم الهدا للضيافة الطائفية", dEn: "Taif Traditional Heritage Restaurant",
+        l5Ar: "تلفريك الهدا ومطلات الشفا الجبلية", l5En: "Al-Hada Cable Car & Al-Shafa Lookouts",
+        t1Ar: "استكشاف قصور وأسواق الطائف القديمة", t1En: "Historic Shubra Palace & Souk Tour",
+        t5Ar: "ركوب التلفريك ومطلات جبال الهدا والشفا", t5En: "Al-Hada Cable Car & Mountain Viewpoint"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "منتزه سيسد الوطني وقصر الملك فيصل", l1En: "Saiysad National Park & King Faisal Palace",
+        cAr: "مقهى بساتين الشفا الجبلية", cEn: "Al-Shafa Mountain Orchards Cafe",
+        mAr: "جامع الهدا الكبير بالطائف", mEn: "Al-Hada Grand Mosque Taif",
+        dAr: "مطعم السليق الطائفي الأصيل", dEn: "Authentic Taif Saleeq Restaurant",
+        l5Ar: "سوق الفواكه الموسمية ومصانع الورد", l5En: "Seasonal Fruit Souk & Rose Distilleries",
+        t1Ar: "جولة الطبيعة الجبلية والمتنزهات", t1En: "Mountain Nature & National Park Stroll",
+        t5Ar: "تجربة قطاف الفواكه وعطور الورد", t5En: "Fruit Harvesting & Rose Oil Distilleries"
+      };
+    }
+  } else if (lower.includes("أحساء") || lower.includes("احساء") || lower.includes("ahsa")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "قصر إبراهيم الأثري وسوق القيصرية", l1En: "Ibrahim Palace & Al-Qaysariya Souk",
+        cAr: "مقهى القيصرية والخبز الحساوي", cEn: "Al-Qaysariya Heritage Cafe",
+        mAr: "مسجد جواثى التاريخي بالأحساء", mEn: "Historic Jawatha Mosque",
+        dAr: "مطعم ومخبز الخبز الحساوي التراثي", dEn: "Hassawi Heritage Bakery & Dining",
+        l5Ar: "جبل القارة وواحة الأحساء التراثية (يونسكو)", l5En: "Jabal Al-Qarah & Al-Ahsa UNESCO Oasis",
+        t1Ar: "جولة القلاع التاريخية وسوق القيصرية", t1En: "Forts & Ancient Qaysariya Souk Tour",
+        t5Ar: "استكشاف المغارات الجبلية بواحة النخيل", t5En: "Jabal Al-Qarah Caves & Oasis Stroll"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "بيت البيعة التاريخي وقصر خزام", l1En: "House of Allegiance & Khuzam Palace",
+        cAr: "مقهى باحة واحة الأحساء", cEn: "Al-Ahsa Oasis Promenade Cafe",
+        mAr: "جامع الجبر التاريخي بالأحساء", mEn: "Historic Al-Jabr Mosque Al-Ahsa",
+        dAr: "مطعم الأرز الحساوي والضيافة الشعبية", dEn: "Hassawi Rice Traditional Restaurant",
+        l5Ar: "منتزه الأحساء الوطني وبحيرة الأصفر", l5En: "Al-Ahsa National Park & Asfar Lake",
+        t1Ar: "جولة معالم البيعة والقصور التاريخية", t1En: "Historical Heritage Palaces Walk",
+        t5Ar: "جولة الكثبان الذهبية وبحيرة الأصفر", t5En: "Asfar Lake & Desert Dunes Excursion"
+      };
+    }
+  } else if (lower.includes("دمام") || lower.includes("خبر") || lower.includes("dammam") || lower.includes("khobar")) {
+    if (day === 1) {
+      dayPlan = {
+        l1Ar: "واجهة كورنيش الدمام وجزيرة المرجان", l1En: "Dammam Corniche Waterfront & Marjan Island",
+        cAr: "مقهى القرية التراثية بالدمام", cEn: "Dammam Heritage Village Cafe",
+        mAr: "جامع الإمام فيصل بن تركي بالدمام", mEn: "Grand Faisal Mosque Dammam",
+        dAr: "مطعم القرية التراثية بالدمام", dEn: "Dammam Heritage Village Restaurant",
+        l5Ar: "مركز الملك عبدالعزيز الثقافي العالمي (إثراء)", l5En: "King Abdulaziz Center for World Culture (Ithra)",
+        t1Ar: "جولة الواجهة البحرية وجزيرة المرجان", t1En: "Dammam Waterfront & Marjan Island Tour",
+        t5Ar: "استكشاف المعارض والتحف بمركز إثراء", t5En: "Ithra Cultural Center & Art Exhibition"
+      };
+    } else {
+      dayPlan = {
+        l1Ar: "واجهة كورنيش الخبر وبرج المياه", l1En: "Khobar Waterfront Corniche & Water Tower",
+        cAr: "مقهى ممشى أجدان ووك بالخبر", cEn: "Ajdan Walk Promenade Cafe Khobar",
+        mAr: "جامع الكورنيش الكبير بالخبر", mEn: "Khobar Waterfront Grand Mosque",
+        dAr: "مطعم الساحل والمأكولات البحرية بالخبر", dEn: "Khobar Coast Seafood Restaurant",
+        l5Ar: "شاطئ نصف القمر والواجهة البحرية", l5En: "Half Moon Bay Waterfront Beach",
+        t1Ar: "جولة كورنيش الخبر وبرج المياه المميز", t1En: "Khobar Promenade & Water Tower Sightseeing",
+        t5Ar: "الاستجمام في شاطئ نصف القمر عند الغروب", t5En: "Half Moon Bay Sunset & Beach Walk"
+      };
+    }
+  } else {
+    const dayVariations = [
+      { t1: "جولة المعالم والمواقع الأثرية الرئيسية", t5: "جولة الأسواق والمعارض التراثية", l1: `المعلم الأثري والتراثي بـ ${cityData.nameAr}`, l5: `سوق الحرف الشعبية بـ ${cityData.nameAr}`, c: `مقهى ${cityData.nameAr} التراثي`, m: `جامع ${cityData.nameAr} الكبير`, d: `مطعم الضيافة بـ ${cityData.nameAr}` },
+      { t1: "جولة المتاحف والحرف الشعبية", t5: "جولة الحدائق والمطلات الطبيعية", l1: `متحف ${cityData.nameAr} التراثي والتاريخي`, l5: `منتزه ومطلات ${cityData.nameAr} الطبيعية`, c: `مقهى باحة ${cityData.nameAr}`, m: `جامع ${cityData.nameAr} التاريخي`, d: `مطعم مأكولات ${cityData.nameAr} الشعبية` },
+      { t1: "جولة الأحياء القديمة وسوق الحرف", t5: "جولة الممشى الثقافي والواجهة", l1: `حي ${cityData.nameAr} القديم والأسواق`, l5: `الممشى الثقافي بـ ${cityData.nameAr}`, c: `مقهى واحة ${cityData.nameAr}`, m: `جامع ${cityData.nameAr} الأثري`, d: `مطعم التراث المحلي في ${cityData.nameAr}` },
+      { t1: "جولة القصور والقلاع التاريخية", t5: "جولة المنتجات الزراعية والمحلية", l1: `قلعة وقصر ${cityData.nameAr} التاريخي`, l5: `سوق المنتجات المحلية بـ ${cityData.nameAr}`, c: `مقهى مطلات ${cityData.nameAr}`, m: `مسجد ${cityData.nameAr} الكبير`, d: `مطعم كرم الضيافة بـ ${cityData.nameAr}` }
+    ];
+    const selected = dayVariations[(day - 1) % dayVariations.length];
+    dayPlan = {
+      l1Ar: selected.l1, l1En: `Main Landmark Day ${day} in ${cityData.nameEn}`,
+      cAr: selected.c, cEn: `Heritage Cafe Day ${day} in ${cityData.nameEn}`,
+      mAr: selected.m, mEn: `Grand Mosque Day ${day} in ${cityData.nameEn}`,
+      dAr: selected.d, dEn: `Traditional Dining Day ${day} in ${cityData.nameEn}`,
+      l5Ar: selected.l5, l5En: `Cultural Park & Souk Day ${day} in ${cityData.nameEn}`,
+      t1Ar: selected.t1, t1En: `Day ${day} Heritage Exploration`,
+      t5Ar: selected.t5, t5En: `Day ${day} Cultural Stroll`
+    };
+  }
+
+  const dayPrefixAr = `[اليوم ${day}] `;
+
+  return [
+    {
+      time: `${dayPrefixAr}09:30`,
+      titleAr: dayPlan.t1Ar || `جولة المعالم التراثية - اليوم ${day}`,
+      titleEn: dayPlan.t1En || `Heritage Exploration - Day ${day}`,
+      locationAr: dayPlan.l1Ar,
+      locationEn: dayPlan.l1En,
+      category: "heritage" as const,
+      weatherIcon: "☀️"
+    },
+    {
+      time: `${dayPrefixAr}11:00`,
+      titleAr: `استراحة قهوة وتذوق الأصالة - اليوم ${day}`,
+      titleEn: `Saudi Coffee Break - Day ${day}`,
+      locationAr: dayPlan.cAr,
+      locationEn: dayPlan.cEn,
+      category: "cafe" as const,
+      weatherIcon: "☕"
+    },
+    {
+      time: `${dayPrefixAr}12:15`,
+      titleAr: `صلاة الظهر والتوقف الإيماني - اليوم ${day}`,
+      titleEn: `Dhuhr Prayer Pause - Day ${day}`,
+      locationAr: dayPlan.mAr,
+      locationEn: dayPlan.mEn,
+      category: "prayer" as const,
+      isPrayerTime: true,
+      prayerNameAr: `صلاة الظهر (${cityData.dhuhr})`,
+      prayerNameEn: `Dhuhr Prayer (${cityData.dhuhr})`,
+      weatherIcon: "🕌"
+    },
+    {
+      time: `${dayPrefixAr}13:15`,
+      titleAr: `غداء تراثي ومأكولات محلية - اليوم ${day}`,
+      titleEn: `Traditional Local Dining - Day ${day}`,
+      locationAr: dayPlan.dAr,
+      locationEn: dayPlan.dEn,
+      category: "dining" as const,
+      weatherIcon: "🍽️"
+    },
+    {
+      time: `${dayPrefixAr}15:00`,
+      titleAr: dayPlan.t5Ar || `المعارض والأنشطة التراثية - اليوم ${day}`,
+      titleEn: dayPlan.t5En || `Cultural Exhibition & Crafts - Day ${day}`,
+      locationAr: dayPlan.l5Ar,
+      locationEn: dayPlan.l5En,
+      category: "heritage" as const,
+      weatherIcon: "🏛️"
+    }
+  ];
+}
+
+function generateFallbackItinerary(destName: string, duration: string, mobility: string, isArabic: boolean, budget: string = 'medium') {
   const isWheelchair = mobility === "wheelchair" || mobility === "easy_access";
   const name = destName || "الرياض";
   const cityData = getCityData(name);
 
-  // Default dynamic placeholders for any unlisted town/city
-  let landmark1Ar = `المعلم الأثري والتراثي بـ ${cityData.nameAr}`;
-  let landmark1En = `Main Historical Landmark in ${cityData.nameEn}`;
-  let cafeAr = `مقهى ${cityData.nameAr} التراثي للقهوة السعودية`;
-  let cafeEn = `Local Heritage Cafe in ${cityData.nameEn}`;
-  let mosqueAr = `جامع ${cityData.nameAr} الكبير`;
-  let mosqueEn = `Grand Mosque of ${cityData.nameEn}`;
-  let diningAr = `مطعم الضيافة والتراث المحلي في ${cityData.nameAr}`;
-  let diningEn = `Traditional Heritage Restaurant in ${cityData.nameEn}`;
-  let landmark5Ar = `سوق الحرف والمتحف المحلي بـ ${cityData.nameAr}`;
-  let landmark5En = `Traditional Crafts Souk & Museum in ${cityData.nameEn}`;
+  const dayMatch = duration ? duration.match(/(\d+)/) : null;
+  const totalDays = dayMatch 
+    ? Math.min(14, Math.max(1, parseInt(dayMatch[1], 10))) 
+    : (duration && (duration.includes("أكثر") || duration.includes("يومان") || duration.includes("Multiple")) ? 2 : 1);
 
-  const lower = name.toLowerCase();
-  if (lower.includes("رياض") || lower.includes("riyadh")) {
-    landmark1Ar = "قصر المصمك وسوق الزل بالديرة";
-    landmark1En = "Al-Masmak Fortress & Souk Al-Zal in Deera";
-    cafeAr = "مقهى كفة وديرة للتراث بالديرة";
-    cafeEn = "Deera Heritage & Kaffa Cafe";
-    mosqueAr = "جامع الإمام تركي بن عبدالله (الجامع الكبير بالديرة)";
-    mosqueEn = "Imam Turki bin Abdullah Grand Mosque in Deera";
-    diningAr = "مطعم القرية النجدية بالديرة";
-    diningEn = "Najd Village Heritage Restaurant in Deera";
-    landmark5Ar = "حي الطريف بآل بجيري والمتحف الوطني بالرياض";
-    landmark5En = "At-Turaif Diriyah & National Museum in Riyadh";
-  } else if (lower.includes("جدة") || lower.includes("jeddah")) {
-    landmark1Ar = "منطقة البلد التاريخية وبيت نصيف";
-    landmark1En = "Al-Balad Historic District & Naseef House";
-    cafeAr = "مقهى كافيهات البلد التراثية";
-    cafeEn = "Al-Balad Heritage Cafe";
-    mosqueAr = "جامع الشافعي التاريخي بالبلد";
-    mosqueEn = "Historic Al-Shafei Mosque in Al-Balad";
-    diningAr = "مطعم السدّة ومأكولات التراث الحجازي";
-    diningEn = "Al-Saddah Traditional Hijazi Dining";
-    landmark5Ar = "واجهة كورنيش جدة والمسجد العائم (مسجد الرحمة)";
-    landmark5En = "Jeddah Corniche & Al-Rahmah Floating Mosque";
-  } else if (lower.includes("علا") || lower.includes("alula")) {
-    landmark1Ar = "موقع الحجر الأثري (مدائن صالح - يونسكو)";
-    landmark1En = "Hegra UNESCO World Heritage Site";
-    cafeAr = "مقهى واحة العلا ومحمية الحجر";
-    cafeEn = "AlUla Oasis Heritage Cafe";
-    mosqueAr = "مسجد البلدة القديمة بالعلا";
-    mosqueEn = "AlUla Old Town Mosque";
-    diningAr = "مطعم سهيل للضيافة بالعلا";
-    diningEn = "Suhail Heritage Restaurant in AlUla";
-    landmark5Ar = "البلدة القديمة وجبل الفيل بالعلا";
-    landmark5En = "AlUla Old Town & Elephant Rock";
-  } else if (lower.includes("درعية") || lower.includes("diriyah")) {
-    landmark1Ar = "حي الطريف التاريخي بآل بجيري (يونسكو)";
-    landmark1En = "At-Turaif UNESCO Heritage Site in Diriyah";
-    cafeAr = "مقهى البجيري بروميناد";
-    cafeEn = "Al-Bujairi Promenade Cafe";
-    mosqueAr = "جامع الإمام محمد بن عبدالوهاب بالدرعية";
-    mosqueEn = "Diriyah Imam Grand Mosque";
-    diningAr = "مطعم سهيل بالدرعية";
-    diningEn = "Suhail Diriyah Restaurant";
-    landmark5Ar = "مطل البجيري ومطل وادي حنيفة";
-    landmark5En = "Al-Bujairi Lookout & Wadi Hanifa";
-  } else if (lower.includes("أبها") || lower.includes("abha")) {
-    landmark1Ar = "قرية رجال ألمع التراثية ومتحف ألمع";
-    landmark1En = "Rijal Almaa Heritage Village & Museum";
-    cafeAr = "مقهى مطل الجبل الأخضر";
-    cafeEn = "Green Mountain Lookout Cafe";
-    mosqueAr = "جامع الملك فهد بأبها";
-    mosqueEn = "King Fahd Grand Mosque Abha";
-    diningAr = "مطعم الضيافة العسيرية بأبها";
-    diningEn = "Traditional Aseer Hospitality Restaurant";
-    landmark5Ar = "حي النصب التراثي وممشى الضباب";
-    landmark5En = "Al-Nassab Heritage District & Fog Walkway";
-  } else if (lower.includes("طائف") || lower.includes("taif")) {
-    landmark1Ar = "قصر شبرا التاريخي وسوق الطائف القديم";
-    landmark1En = "Shubra Palace & Historic Taif Souk";
-    cafeAr = "مقهى ومزارع الورد الطائفي";
-    cafeEn = "Taif Rose Farm & Heritage Cafe";
-    mosqueAr = "جامع عبدالله بن عباس التاريخي";
-    mosqueEn = "Historic Ibn Abbas Mosque";
-    diningAr = "مطعم الهدا للضيافة الطائفية";
-    diningEn = "Taif Traditional Heritage Restaurant";
-    landmark5Ar = "تلفريك الهدا ومطلات الشفا الجبلية";
-    landmark5En = "Al-Hada Cable Car & Al-Shafa Lookouts";
-  } else if (lower.includes("أحساء") || lower.includes("احساء") || lower.includes("ahsa")) {
-    landmark1Ar = "قصر إبراهيم الأثري وسوق القيصرية";
-    landmark1En = "Ibrahim Palace & Al-Qaysariya Souk";
-    cafeAr = "مقهى القيصرية والخبز الحساوي";
-    cafeEn = "Al-Qaysariya Heritage Cafe";
-    mosqueAr = "مسجد جواثى التاريخي بالأحساء";
-    mosqueEn = "Historic Jawatha Mosque";
-    diningAr = "مطعم ومخبز الخبز الحساوي التراثي";
-    diningEn = "Hassawi Heritage Bakery & Dining";
-    landmark5Ar = "جبل القارة وواحة الأحساء التراثية (يونسكو)";
-    landmark5En = "Jabal Al-Qarah & Al-Ahsa UNESCO Oasis";
-  } else if (lower.includes("دمام") || lower.includes("dammam")) {
-    landmark1Ar = "واجهة كورنيش الدمام وجزيرة المرجان";
-    landmark1En = "Dammam Corniche Waterfront & Marjan Island";
-    cafeAr = "مقهى القرية التراثية بالدمام";
-    cafeEn = "Dammam Heritage Village Cafe";
-    mosqueAr = "جامع الإمام فيصل بن تركي بالدمام";
-    mosqueEn = "Grand Faisal Mosque Dammam";
-    diningAr = "مطعم القرية التراثية بالدمام";
-    diningEn = "Dammam Heritage Village Restaurant";
-    landmark5Ar = "مركز الملك عبدالعزيز الثقافي العالمي (إثراء)";
-    landmark5En = "King Abdulaziz Center for World Culture (Ithra)";
-  } else if (lower.includes("خبر") || lower.includes("khobar")) {
-    landmark1Ar = "واجهة كورنيش الخبر وبرج المياه";
-    landmark1En = "Khobar Waterfront Corniche & Water Tower";
-    cafeAr = "مقهى ممشى أجدان ووك";
-    cafeEn = "Ajdan Walk Promenade Cafe";
-    mosqueAr = "جامع الكورنيش الكبير بالخبر";
-    mosqueEn = "Khobar Waterfront Grand Mosque";
-    diningAr = "مطعم الساحل والمأكولات البحرية بالخبر";
-    diningEn = "Khobar Coast Seafood Restaurant";
-    landmark5Ar = "شاطئ نصف القمر والواجهة البحرية";
-    landmark5En = "Half Moon Bay Waterfront Beach";
-  } else if (lower.includes("تبوك") || lower.includes("tabuk")) {
-    landmark1Ar = "قلعة تبوك التاريخية وعين السكر";
-    landmark1En = "Historic Tabuk Castle & Sugar Spring";
-    cafeAr = "مقهى سوق الطواحين التراثي";
-    cafeEn = "Souk Al-Twaheen Cafe";
-    mosqueAr = "المسجد الأثري التاريخي بتبوك";
-    mosqueEn = "Historic Tabuk Mosque";
-    diningAr = "مطعم الضيافة الشمالية بتبوك";
-    diningEn = "Northern Heritage Restaurant in Tabuk";
-    landmark5Ar = "وادي الديسة الطبيعي العجيب";
-    landmark5En = "Wadi Al-Disah Natural Canyon";
-  } else if (lower.includes("حائل") || lower.includes("حايل") || lower.includes("hail")) {
-    landmark1Ar = "قلعة عيرف وقصر القشلة التاريخي";
-    landmark1En = "A'arif Fort & Qeshla Historical Palace";
-    cafeAr = "مقهى سوق حائل التراثي";
-    cafeEn = "Hail Heritage Souk Cafe";
-    mosqueAr = "جامع برزان الكبير بحائل";
-    mosqueEn = "Barzan Grand Mosque in Hail";
-    diningAr = "مطعم الكرم الحائلي التراثي";
-    diningEn = "Hail Hospitality Restaurant";
-    landmark5Ar = "نقوش جبة جبل أم سنمان (يونسكو)";
-    landmark5En = "Jubbah UNESCO Rock Art Site";
-  } else if (lower.includes("جازان") || lower.includes("جيزان") || lower.includes("jazan") || lower.includes("jizan")) {
-    landmark1Ar = "القرية التراثية الكبرى بجازان";
-    landmark1En = "Jazan Grand Heritage Village";
-    cafeAr = "مقهى الكورنيش الشمالي بجازان";
-    cafeEn = "North Corniche Cafe Jazan";
-    mosqueAr = "جامع جازان الكبير";
-    mosqueEn = "Jazan Grand Mosque";
-    diningAr = "مطعم المرساة للمأكولات البحرية بجازان";
-    diningEn = "Jazan Seafood & Southern Dining";
-    landmark5Ar = "مطل مدرجات جبال فيفاء الخضراء";
-    landmark5En = "Fayfa Green Mountain Terraces Viewpoint";
-  } else if (lower.includes("نجران") || lower.includes("najran")) {
-    landmark1Ar = "قصر العان الطيني وقصر الإمارة التاريخي";
-    landmark1En = "Al-Aan Mud Palace & Emara Palace";
-    cafeAr = "مقهى سوق نجران التراثي";
-    cafeEn = "Najran Heritage Market Cafe";
-    mosqueAr = "الجامع التاريخي الأثري بنجران";
-    mosqueEn = "Historic Najran Mosque";
-    diningAr = "مطعم الضيافة النجرانية التراثية";
-    diningEn = "Najran Traditional Hospitality Dining";
-    landmark5Ar = "آبار حمى التراثية وموقع الأخدود (يونسكو)";
-    landmark5En = "Hima UNESCO Site & Al-Okhdood Historic Ruins";
-  } else if (lower.includes("قصيم") || lower.includes("بريدة") || lower.includes("عنيزة") || lower.includes("qassim") || lower.includes("buraidah")) {
-    landmark1Ar = "سوق العقيلات وسوق الحرف الشعبية";
-    landmark1En = "Souk Al-Aqilat & Traditional Crafts Souk";
-    cafeAr = "مقهى واحة النخيل ببريدة";
-    cafeEn = "Buraidah Palm Oasis Cafe";
-    mosqueAr = "جامع خادم الحرمين الشريفين ببريدة";
-    mosqueEn = "Buraidah Grand Mosque";
-    diningAr = "مطعم المأكولات القصيمية التراثية";
-    diningEn = "Qassim Traditional Cuisine Restaurant";
-    landmark5Ar = "برج بريدة وسوق التمور التراثي";
-    landmark5En = "Buraidah Tower & Date Souk Museum";
-  } else if (lower.includes("ينبع") || lower.includes("yanbu")) {
-    landmark1Ar = "منطقة ينبع التاريخية وسوق الليل";
-    landmark1En = "Historic Yanbu District & Night Souk";
-    cafeAr = "مقهى سوق الليل التراثي بينبع";
-    cafeEn = "Yanbu Night Souk Cafe";
-    mosqueAr = "مسجد البحر التاريخي بينبع";
-    mosqueEn = "Historic Seaside Mosque in Yanbu";
-    diningAr = "مطعم الصياد للمأكولات البحرية بينبع";
-    diningEn = "Yanbu Seafood & Fisherman Dining";
-    landmark5Ar = "واجهة كورنيش ينبع البحر";
-    landmark5En = "Yanbu Sea Corniche Waterfront";
-  } else if (lower.includes("مكة") || lower.includes("makkah") || lower.includes("mecca")) {
-    landmark1Ar = "جبل النور وغار حراء ومعرض الوحي بمكة";
-    landmark1En = "Mount Noor, Hira Cave & Revelation Exhibition";
-    cafeAr = "مقهى ومجالس الضيافة المكية";
-    cafeEn = "Makkah Traditional Hospitality Cafe";
-    mosqueAr = "المسجد الحرام بمكة المكرمة";
-    mosqueEn = "Al-Masjid Al-Haram in Makkah";
-    diningAr = "مطعم الضيافة والمأكولات المكية التراثية";
-    diningEn = "Makkah Traditional Cuisine Restaurant";
-    landmark5Ar = "متحف معالم مكة ومتحف عمارة الحرمين";
-    landmark5En = "Makkah Landmarks & Two Holy Mosques Museum";
-  } else if (lower.includes("مدينة") || lower.includes("madinah") || lower.includes("medina")) {
-    landmark1Ar = "مسجد قباء ومزرعة بئر عثمان بالمدينة";
-    landmark1En = "Quba Mosque & Well of Othman Heritage Garden";
-    cafeAr = "مقهى باحة جبل أُحد والتمور المدينية";
-    cafeEn = "Mount Uhud Oasis Cafe";
-    mosqueAr = "المسجد النبوي الشريف بالمدينة المنورة";
-    mosqueEn = "Al-Masjid An-Nabawi in Madinah";
-    diningAr = "مطعم الضيافة المدينية التراثية";
-    diningEn = "Madinah Traditional Heritage Restaurant";
-    landmark5Ar = "جبل أُحد ومحطة سكة حديد الحجاز التاريخية";
-    landmark5En = "Mount Uhud & Historic Hejaz Railway Station";
-  } else if (lower.includes("باحة") || lower.includes("baha")) {
-    landmark1Ar = "قرية ذي عين الأثرية بالباحة";
-    landmark1En = "Thee Ain Ancient Marble Village in Al Baha";
-    cafeAr = "مقهى منتزه غابة رغدان بالباحة";
-    cafeEn = "Raghadan Forest Park Cafe";
-    mosqueAr = "جامع الباحة الكبير";
-    mosqueEn = "Al Baha Grand Mosque";
-    diningAr = "مطعم الضيافة الجنوبية بالباحة";
-    diningEn = "Traditional Southern Hospitality Restaurant";
-    landmark5Ar = "منتزه غابة رغدان وشلالات جبل شدا";
-    landmark5En = "Raghadan Forest Park & Shada Mountain";
-  } else if (lower.includes("جبيل") || lower.includes("jubail")) {
-    landmark1Ar = "شاطئ الفنير والواجهة البحرية بالجبيل";
-    landmark1En = "Fanateer Beach & Waterfront Promenade";
-    cafeAr = "مقهى مرسى الفنطاس بالجبيل";
-    cafeEn = "Fanateer Marina Cafe";
-    mosqueAr = "جامع الفنطير الكبير بالجبيل";
-    mosqueEn = "Fanateer Grand Mosque";
-    diningAr = "مطعم المأكولات البحرية بالجبيل";
-    diningEn = "Jubail Seafood Restaurant";
-    landmark5Ar = "منتزه نجد ومتنزه الدفي بالجبيل";
-    landmark5En = "Al-Dafi Park & Jubail Coastal Trail";
+  let generatedItems: any[] = [];
+
+  for (let day = 1; day <= totalDays; day++) {
+    const dayBaseItems = getCityDayItems(name, day, cityData, isWheelchair);
+    
+    dayBaseItems.forEach((base, idx) => {
+      generatedItems.push({
+        id: `f-d${day}-${idx + 1}`,
+        dayNumber: day,
+        time: base.time,
+        titleAr: base.titleAr,
+        titleEn: base.titleEn,
+        locationAr: base.locationAr,
+        locationEn: base.locationEn,
+        distanceAr: "600 متر",
+        distanceEn: "600 meters",
+        travelTimeAr: "8 دقائق",
+        travelTimeEn: "8 mins",
+        mobilityNoteAr: isWheelchair ? "مسار مسطح ممهد بالكامل ♿ مع نقاط ظلال متكررة" : "مسار مشي سهل وممتع",
+        mobilityNoteEn: isWheelchair ? "Completely flat paved trail ♿ with frequent shade stops" : "Easy pleasant walking path",
+        isWheelchairAccessible: true,
+        isPrayerTime: base.isPrayerTime || false,
+        prayerNameAr: base.prayerNameAr,
+        prayerNameEn: base.prayerNameEn,
+        temperature: cityData.temp,
+        weatherIcon: base.weatherIcon,
+        crowdLevelAr: "منخفض (أجواء هادئة)",
+        crowdLevelEn: "Low Density",
+        crowdStatus: "low",
+        category: base.category,
+        aiRationaleAr: `برنامج اليوم ${day} مبتكر ومخصص لزيارة معالم جديدة وغير مكررة في ${cityData.nameAr}.`,
+        aiRationaleEn: `Day ${day} itinerary uniquely customized with distinct new landmarks in ${cityData.nameEn}.`,
+        sourceAr: "المصدر: هيئة التراث السعودية وروح السعودية",
+        sourceEn: "Source: Saudi Heritage Authority & Visit Saudi"
+      });
+    });
   }
 
   return {
@@ -694,141 +831,12 @@ function generateFallbackItinerary(destName: string, duration: string, mobility:
     durationEn: duration || "5 Hours",
     date: new Date().toISOString().split("T")[0],
     createdAt: new Date().toISOString(),
-    totalDistanceAr: "3.8 كم",
-    totalDistanceEn: "3.8 km",
+    totalDistanceAr: `${(3.8 * totalDays).toFixed(1)} كم`,
+    totalDistanceEn: `${(3.8 * totalDays).toFixed(1)} km`,
     accessibilityScore: isWheelchair ? 99 : 92,
-    summaryAr: `تم توليد هذا المسار بالذكاء الاصطناعي لزيارة ${cityData.nameAr} مع مراعاة أوقات الصلاة (الظهر: ${cityData.dhuhr})، ومسارات ${isWheelchair ? "مجهزة للكراسي المتحركة بدون درجات" : "المشي المريحة"} والطقس (${cityData.temp}).`,
-    summaryEn: `AI-generated itinerary for ${cityData.nameEn} factoring prayer schedules (Dhuhr: ${cityData.dhuhr}), ${isWheelchair ? "step-free wheelchair paths" : "comfortable walking routes"} and weather comfort (${cityData.temp}).`,
-    items: [
-      {
-        id: "f1",
-        time: "09:30",
-        titleAr: "الجولة الاستكشافية للمعالم الرئيسية",
-        titleEn: "Main Landmark Heritage Exploration",
-        locationAr: landmark1Ar,
-        locationEn: landmark1En,
-        distanceAr: "900 متر",
-        distanceEn: "900 meters",
-        travelTimeAr: "12 دقيقة",
-        travelTimeEn: "12 mins",
-        mobilityNoteAr: isWheelchair ? "مسار مسطح ممهد بالكامل ♿ مع نقاط ظلال متكررة" : "مسار مشي سهل وممتع",
-        mobilityNoteEn: isWheelchair ? "Completely flat paved trail ♿ with frequent shade stops" : "Easy pleasant walking path",
-        isWheelchairAccessible: true,
-        temperature: cityData.temp,
-        weatherIcon: "☀️",
-        crowdLevelAr: "منخفض (أجواء هادئة)",
-        crowdLevelEn: "Low Density",
-        crowdStatus: "low",
-        category: "heritage",
-        aiRationaleAr: "توقيت الصباح يوفر طقساً ألطف وإضاءة تصوير ممتازة مع زحام لا يذكر.",
-        aiRationaleEn: "Morning hours offer mild weather, low crowds, and ideal photo lighting.",
-        sourceAr: "المصدر: هيئة التراث السعودية",
-        sourceEn: "Source: Saudi Heritage Authority"
-      },
-      {
-        id: "f2",
-        time: "11:00",
-        titleAr: "استراحة قهوة وتجربة المأكولات المحلية",
-        titleEn: "Local Coffee & Culinary Break",
-        locationAr: cafeAr,
-        locationEn: cafeEn,
-        distanceAr: "400 متر",
-        distanceEn: "400 meters",
-        travelTimeAr: "5 دقائق",
-        travelTimeEn: "5 mins",
-        mobilityNoteAr: "مدخل مهيأ بمرور سهل وطاولات واسعة ♿",
-        mobilityNoteEn: "Ramped entrance with spacious seating ♿",
-        isWheelchairAccessible: true,
-        temperature: cityData.temp,
-        weatherIcon: "☕",
-        crowdLevelAr: "هادئ",
-        crowdLevelEn: "Quiet",
-        crowdStatus: "low",
-        category: "cafe",
-        aiRationaleAr: "توفير فترة راحة قبل موعد أذان الظهر للانتعاش بالقهوة السعودية.",
-        aiRationaleEn: "Resting break planned before noon prayer call.",
-        sourceAr: "المصدر: روح السعودية",
-        sourceEn: "Source: Visit Saudi"
-      },
-      {
-        id: "f3",
-        time: "12:15",
-        titleAr: "صلاة الظهر والتوقف الإيماني",
-        titleEn: "Dhuhr Prayer & Peaceful Pause",
-        locationAr: mosqueAr,
-        locationEn: mosqueEn,
-        distanceAr: "250 متر",
-        distanceEn: "250 meters",
-        travelTimeAr: "4 دقائق",
-        travelTimeEn: "4 mins",
-        mobilityNoteAr: "مصلى مجهز بمسار سلس ومنحدر سهولة وصول",
-        mobilityNoteEn: "Ramped accessible mosque entrance",
-        isWheelchairAccessible: true,
-        isPrayerTime: true,
-        prayerNameAr: `صلاة الظهر (${cityData.dhuhr})`,
-        prayerNameEn: `Dhuhr Prayer (${cityData.dhuhr})`,
-        temperature: `${cityData.temp} (داخل المسجد 22°C)`,
-        weatherIcon: "🕌",
-        crowdLevelAr: "متوسط",
-        crowdLevelEn: "Moderate",
-        crowdStatus: "medium",
-        category: "prayer",
-        aiRationaleAr: "مراعاة وقت الصلاة والتوقف في مسجد قريب مكيف ومريح.",
-        aiRationaleEn: "Scheduled prayer pause at a fully accessible air-conditioned mosque.",
-        sourceAr: "المصدر: وزارة الشؤون الإسلامية",
-        sourceEn: "Source: Ministry of Islamic Affairs"
-      },
-      {
-        id: "f4",
-        time: "13:15",
-        titleAr: "غداء تراثي في بيئة مكيفة ومريحة",
-        titleEn: "Traditional Lunch in Air-Conditioned Comfort",
-        locationAr: diningAr,
-        locationEn: diningEn,
-        distanceAr: "300 متر",
-        distanceEn: "300 meters",
-        travelTimeAr: "5 دقائق",
-        travelTimeEn: "5 mins",
-        mobilityNoteAr: "جلسات مريحة ومصعد أو بدون درجات ♿",
-        mobilityNoteEn: "Level floor seating with zero steps ♿",
-        isWheelchairAccessible: true,
-        temperature: cityData.temp,
-        weatherIcon: "🍽️",
-        crowdLevelAr: "متوسط",
-        crowdLevelEn: "Moderate",
-        crowdStatus: "medium",
-        category: "dining",
-        aiRationaleAr: "تناول وجبة الغداء التراثية في مكان دافئ الضيافة بعد أدء الصلاة.",
-        aiRationaleEn: "Enjoying authentic local lunch after prayer pause.",
-        sourceAr: "المصدر: روح السعودية",
-        sourceEn: "Source: Visit Saudi"
-      },
-      {
-        id: "f5",
-        time: "15:00",
-        titleAr: "جولة المعارض التراثية والتسوق الحرفي",
-        titleEn: "Handicraft Souk & Museum Exhibition Walk",
-        locationAr: landmark5Ar,
-        locationEn: landmark5En,
-        distanceAr: "500 متر",
-        distanceEn: "500 meters",
-        travelTimeAr: "8 دقائق",
-        travelTimeEn: "8 mins",
-        mobilityNoteAr: "ممرات عريضة ومسارات مجهزة للكراسي المتحركة ♿",
-        mobilityNoteEn: "Wide corridors with smooth wheelchair access ♿",
-        isWheelchairAccessible: true,
-        temperature: cityData.temp,
-        weatherIcon: "🏛️",
-        crowdLevelAr: "خفيف",
-        crowdLevelEn: "Light",
-        crowdStatus: "low",
-        category: "heritage",
-        aiRationaleAr: "اختتام الرحلة بجولة ممتعة ومسترخية بين التحف التراثية والحرف اليدوية.",
-        aiRationaleEn: "Closing the tour with an enriching cultural walkthrough.",
-        sourceAr: "المصدر: هيئة التراث السعودية",
-        sourceEn: "Source: Saudi Heritage Authority"
-      }
-    ]
+    summaryAr: `تم توليد هذا المسار المبتكر بالذكاء الاصطناعي لزيارة ${cityData.nameAr} لمدة (${duration}) ببرنامج متنوع وغير مكرر لكل يوم، مع مراعاة أوقات الصلاة (الظهر: ${cityData.dhuhr}) ومسارات ${isWheelchair ? "مجهزة للكراسي المتحركة" : "المشي المريحة"}.`,
+    summaryEn: `AI-generated ${duration} innovative itinerary for ${cityData.nameEn} with unique non-repeating daily events, factoring prayer schedules (Dhuhr: ${cityData.dhuhr}) and ${isWheelchair ? "step-free wheelchair paths" : "comfortable walking routes"}.`,
+    items: generatedItems
   };
 }
 

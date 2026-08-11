@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Accessibility, MapPin, Compass, Heart, CheckCircle2, Sliders, AlertCircle, ShieldCheck } from 'lucide-react';
-import { Language, MobilityOption, TripPlannerInput } from '../types';
+import { Calendar, Clock, Accessibility, MapPin, Compass, Heart, CheckCircle2, Sliders, AlertCircle, ShieldCheck, Wallet } from 'lucide-react';
+import { Language, MobilityOption, BudgetOption, TripPlannerInput } from '../types';
 import { translations } from '../data/translations';
 import { PalmIcon } from './PalmIcon';
 
@@ -31,7 +31,9 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
   const [destination, setDestination] = useState<string>(selectedDestinationFromCard || 'الرياض');
   const [customDestination, setCustomDestination] = useState<string>('');
   const [duration, setDuration] = useState<string>('5 ساعات');
+  const [daysCount, setDaysCount] = useState<number>(2);
   const [mobility, setMobility] = useState<MobilityOption>('none');
+  const [budget, setBudget] = useState<BudgetOption>('medium');
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['التاريخ والتراث', 'الطعام']);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>(['تجنب الزحام', 'أماكن مكيفة']);
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -66,10 +68,16 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
       ? (customDestination || (lang === 'ar' ? 'الرياض' : 'Riyadh')) 
       : destination;
 
+    const isMultiDaySelected = duration === 'أكثر من يوم' || duration.includes('أيام') || duration.includes('days') || duration.includes('يومان') || duration.includes('Multiple Days');
+    const finalDuration = isMultiDaySelected 
+      ? `${daysCount} ${lang === 'ar' ? (daysCount === 2 ? 'يومان' : 'أيام') : 'Days'}` 
+      : duration;
+
     onGenerate({
       destination: finalDest,
-      duration,
+      duration: finalDuration,
       mobility,
+      budget,
       interests: selectedInterests,
       preferences: selectedPreferences,
       date,
@@ -99,6 +107,12 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
     { key: 'limited', label: t.mobLimited, desc: lang === 'ar' ? 'مسافات قصيرة وفترات جلوس متكررة' : 'Short walking distances with seating', icon: '🚶' },
     { key: 'wheelchair', label: t.mobWheelchair, desc: lang === 'ar' ? 'منحدرات ومسارات مسطحة 100% ♿' : 'Ramped & flat 100% accessible', icon: '♿' },
     { key: 'easy_access', label: t.mobEasyAccess, desc: lang === 'ar' ? 'بدون درجات أو مصاعد واسعة' : 'Step-free with spacious elevators', icon: '🚪' },
+  ];
+
+  const budgetList: { key: BudgetOption; label: string; desc: string; icon: string }[] = [
+    { key: 'economic', label: t.budgetEco, desc: t.budgetEcoDesc, icon: '💵' },
+    { key: 'medium', label: t.budgetMedium, desc: t.budgetMediumDesc, icon: '💳' },
+    { key: 'luxury', label: t.budgetLuxury, desc: t.budgetLuxuryDesc, icon: '💎' },
   ];
 
   const interestsList = [
@@ -196,12 +210,27 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {durationsList.map((item) => {
-                  const selected = duration === item.val;
+                  const isMultiItem = item.val === 'أكثر من يوم';
+                  const isMultiSelected = isMultiItem && (
+                    duration === 'أكثر من يوم' || 
+                    duration.includes('أيام') || 
+                    duration.includes('days') || 
+                    duration.includes('يومان') || 
+                    duration.includes('Multiple Days')
+                  );
+                  const selected = isMultiSelected || duration === item.val;
+
                   return (
                     <button
                       type="button"
                       key={item.val}
-                      onClick={() => setDuration(item.val)}
+                      onClick={() => {
+                        if (isMultiItem) {
+                          setDuration(`${daysCount} ${lang === 'ar' ? (daysCount === 2 ? 'يومان' : 'أيام') : 'Days'}`);
+                        } else {
+                          setDuration(item.val);
+                        }
+                      }}
                       className={`py-3 px-4 rounded-xl border text-center font-bold text-xs sm:text-sm transition-all duration-200 ${
                         selected
                           ? 'border-[#4F6F52] bg-[#4F6F52] text-white shadow-sm'
@@ -213,6 +242,69 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
                   );
                 })}
               </div>
+
+              {/* Multi-day Picker */}
+              {(duration === 'أكثر من يوم' || duration.includes('أيام') || duration.includes('days') || duration.includes('يومان') || duration.includes('Multiple Days')) && (
+                <div className="p-4 rounded-2xl bg-[#C58B5C]/10 dark:bg-[#C58B5C]/20 border border-[#C58B5C]/30 space-y-3 animate-fadeIn">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="text-sm font-bold text-[#3B2A22] dark:text-[#FAF8F3] flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#C58B5C] dark:text-[#D6AD72]" />
+                      <span>{t.selectDaysCount}</span>
+                    </label>
+
+                    <div className="flex items-center gap-2 bg-white dark:bg-[#241D18] rounded-xl px-3 py-1.5 border border-[#F3E6D0] dark:border-[#493A2F]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = Math.max(2, daysCount - 1);
+                          setDaysCount(next);
+                          setDuration(`${next} ${lang === 'ar' ? (next === 2 ? 'يومان' : 'أيام') : 'Days'}`);
+                        }}
+                        className="w-7 h-7 rounded-lg bg-[#FAF8F3] dark:bg-[#30251E] font-extrabold text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#C58B5C] hover:text-white transition-colors flex items-center justify-center text-base"
+                      >
+                        -
+                      </button>
+                      <span className="font-extrabold text-sm text-[#3B2A22] dark:text-[#FAF8F3] min-w-[4.5rem] text-center">
+                        {daysCount} {lang === 'ar' ? (daysCount === 2 ? 'يومان' : 'أيام') : 'Days'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = Math.min(14, daysCount + 1);
+                          setDaysCount(next);
+                          setDuration(`${next} ${lang === 'ar' ? (next === 2 ? 'يومان' : 'أيام') : 'Days'}`);
+                        }}
+                        className="w-7 h-7 rounded-lg bg-[#FAF8F3] dark:bg-[#30251E] font-extrabold text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#C58B5C] hover:text-white transition-colors flex items-center justify-center text-base"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[2, 3, 4, 5, 7].map((num) => {
+                      const selected = daysCount === num;
+                      return (
+                        <button
+                          type="button"
+                          key={num}
+                          onClick={() => {
+                            setDaysCount(num);
+                            setDuration(`${num} ${lang === 'ar' ? (num === 2 ? 'يومان' : 'أيام') : 'Days'}`);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            selected
+                              ? 'bg-[#C58B5C] text-white shadow-sm scale-105'
+                              : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                          }`}
+                        >
+                          {num} {lang === 'ar' ? (num === 2 ? 'يومان' : 'أيام') : 'Days'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Step 3: Mobility Needs */}
@@ -277,7 +369,40 @@ export const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
               </div>
             </div>
 
-            {/* Step 5: Preferences */}
+            {/* Step 5: Budget */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-base sm:text-lg font-bold text-[#3B2A22] dark:text-[#FAF8F3]">
+                <Wallet className="w-5 h-5 text-[#C58B5C] dark:text-[#D6AD72]" />
+                <span>{t.budgetLabel}</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {budgetList.map((item) => {
+                  const selected = budget === item.key;
+                  return (
+                    <button
+                      type="button"
+                      key={item.key}
+                      onClick={() => setBudget(item.key)}
+                      className={`p-3.5 rounded-2xl border text-start transition-all duration-200 flex items-start gap-3 ${
+                        selected
+                          ? 'border-[#C58B5C] bg-[#C58B5C]/10 dark:bg-[#C58B5C]/20 ring-2 ring-[#C58B5C] text-[#3B2A22] dark:text-[#FAF8F3]'
+                          : 'border-[#F3E6D0] dark:border-[#493A2F] bg-[#FAF8F3] dark:bg-[#30251E] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                      }`}
+                    >
+                      <span className="text-xl shrink-0 p-0.5">{item.icon}</span>
+                      <div className="flex-1">
+                        <div className="font-bold text-xs sm:text-sm text-[#3B2A22] dark:text-[#FAF8F3]">{item.label}</div>
+                        <div className="text-[11px] text-[#3B2A22]/70 dark:text-[#C8BDB2] mt-0.5 font-medium">{item.desc}</div>
+                      </div>
+                      {selected && <CheckCircle2 className="w-4 h-4 text-[#C58B5C] shrink-0 mt-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 6: Preferences */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-base sm:text-lg font-bold text-[#3B2A22] dark:text-[#FAF8F3]">
                 <Sliders className="w-5 h-5 text-[#4F6F52]" />

@@ -26,11 +26,31 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
   const cityData = getSaudiCityData(itinerary.destinationNameAr || itinerary.destinationNameEn);
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
+  const [selectedDayFilter, setSelectedDayFilter] = useState<number | 'all'>('all');
   const [copiedLink, setCopiedLink] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
 
+  // Extract unique day numbers across items
+  const uniqueDays: number[] = Array.from(
+    new Set<number>(
+      itinerary.items.map(item => {
+        if (item.dayNumber) return Number(item.dayNumber);
+        const match = item.time && item.time.match(/اليوم\s*(\d+)/);
+        return match ? parseInt(match[1], 10) : 1;
+      })
+    )
+  ).sort((a: number, b: number) => a - b);
+
+  const hasMultipleDays = uniqueDays.length > 1;
+
   const filterItems = itinerary.items.filter(item => {
+    const itemDay = item.dayNumber || (item.time && item.time.match(/اليوم\s*(\d+)/)?.[1] ? parseInt(item.time.match(/اليوم\s*(\d+)/)![1], 10) : 1);
+    
+    if (selectedDayFilter !== 'all' && itemDay !== selectedDayFilter) {
+      return false;
+    }
+
     if (activeCategoryFilter === 'accessible') return item.isWheelchairAccessible;
     if (activeCategoryFilter === 'prayer') return item.isPrayerTime;
     if (activeCategoryFilter === 'dining') return item.category === 'dining' || item.category === 'cafe';
@@ -326,57 +346,93 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
 
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap print:hidden">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#3B2A22] dark:text-[#FAF8F3]">
-            <Filter className="w-4 h-4 text-[#C58B5C] dark:text-[#D6AD72]" />
-            <span>{lang === 'ar' ? 'تصفية المحطات:' : 'Filter Stops:'}</span>
-          </div>
+        {/* Filter Bar & Day Tabs */}
+        <div className="space-y-3 mb-6 print:hidden">
+          {/* Multi-day Filter Row */}
+          {hasMultipleDays && (
+            <div className="p-3 rounded-2xl bg-[#C58B5C]/10 dark:bg-[#C58B5C]/20 border border-[#C58B5C]/30 flex items-center gap-2 overflow-x-auto scrollbar-none">
+              <span className="text-xs font-extrabold text-[#3B2A22] dark:text-[#FAF8F3] shrink-0 flex items-center gap-1.5 px-1">
+                <Calendar className="w-4 h-4 text-[#C58B5C] dark:text-[#D6AD72]" />
+                <span>{isRtl ? 'الأيام:' : 'Days:'}</span>
+              </span>
+              <button
+                onClick={() => setSelectedDayFilter('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                  selectedDayFilter === 'all'
+                    ? 'bg-[#C58B5C] text-white shadow-sm scale-105'
+                    : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                }`}
+              >
+                {isRtl ? 'جميع الأيام' : 'All Days'}
+              </button>
+              {uniqueDays.map(dayNum => (
+                <button
+                  key={dayNum}
+                  onClick={() => setSelectedDayFilter(dayNum)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                    selectedDayFilter === dayNum
+                      ? 'bg-[#C58B5C] text-white shadow-sm scale-105'
+                      : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                  }`}
+                >
+                  📅 {isRtl ? (dayNum === 2 ? 'اليوم الثاني' : dayNum === 1 ? 'اليوم الأول' : `اليوم ${dayNum}`) : `Day ${dayNum}`}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setActiveCategoryFilter('all')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                activeCategoryFilter === 'all'
-                  ? 'bg-[#3B2A22] dark:bg-[#C58B5C] text-white'
-                  : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
-              }`}
-            >
-              {lang === 'ar' ? 'جميع المحطات' : 'All Stops'} ({itinerary.items.length})
-            </button>
+          {/* Category Filter Row */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#3B2A22] dark:text-[#FAF8F3]">
+              <Filter className="w-4 h-4 text-[#C58B5C] dark:text-[#D6AD72]" />
+              <span>{lang === 'ar' ? 'تصفية المحطات:' : 'Filter Stops:'}</span>
+            </div>
 
-            <button
-              onClick={() => setActiveCategoryFilter('accessible')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                activeCategoryFilter === 'accessible'
-                  ? 'bg-[#4F6F52] text-white'
-                  : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
-              }`}
-            >
-              ♿ {t.wheelchairFriendly}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setActiveCategoryFilter('all')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  activeCategoryFilter === 'all'
+                    ? 'bg-[#3B2A22] dark:bg-[#C58B5C] text-white'
+                    : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                }`}
+              >
+                {lang === 'ar' ? 'جميع المحطات' : 'All Stops'} ({itinerary.items.length})
+              </button>
 
-            <button
-              onClick={() => setActiveCategoryFilter('prayer')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                activeCategoryFilter === 'prayer'
-                  ? 'bg-[#C58B5C] text-white'
-                  : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
-              }`}
-            >
-              🕌 {lang === 'ar' ? 'استراحات الصلاة' : 'Prayer Stops'}
-            </button>
+              <button
+                onClick={() => setActiveCategoryFilter('accessible')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  activeCategoryFilter === 'accessible'
+                    ? 'bg-[#4F6F52] text-white'
+                    : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                }`}
+              >
+                ♿ {t.wheelchairFriendly}
+              </button>
 
-            <button
-              onClick={() => setActiveCategoryFilter('dining')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                activeCategoryFilter === 'dining'
-                  ? 'bg-[#3B2A22] dark:bg-[#C58B5C] text-white'
-                  : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
-              }`}
-            >
-              🍽️ {lang === 'ar' ? 'المطاعم والمقاهي' : 'Dining & Cafes'}
-            </button>
+              <button
+                onClick={() => setActiveCategoryFilter('prayer')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  activeCategoryFilter === 'prayer'
+                    ? 'bg-[#C58B5C] text-white'
+                    : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                }`}
+              >
+                🕌 {lang === 'ar' ? 'استراحات الصلاة' : 'Prayer Stops'}
+              </button>
+
+              <button
+                onClick={() => setActiveCategoryFilter('dining')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  activeCategoryFilter === 'dining'
+                    ? 'bg-[#3B2A22] dark:bg-[#C58B5C] text-white'
+                    : 'bg-white dark:bg-[#241D18] border border-[#F3E6D0] dark:border-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F]'
+                }`}
+              >
+                🍽️ {lang === 'ar' ? 'المطاعم والمقاهي' : 'Dining & Cafes'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -386,16 +442,30 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
           {filterItems.map((item, idx) => {
             const isPrayer = item.isPrayerTime;
             const itemImg = getItineraryItemImage(item, itinerary.destinationNameAr || itinerary.destinationNameEn);
+            const currentItemDay = item.dayNumber || (item.time && item.time.match(/اليوم\s*(\d+)/)?.[1] ? parseInt(item.time.match(/اليوم\s*(\d+)/)![1], 10) : 1);
+            const prevItemDay = idx > 0 ? (filterItems[idx - 1].dayNumber || (filterItems[idx - 1].time && filterItems[idx - 1].time.match(/اليوم\s*(\d+)/)?.[1] ? parseInt(filterItems[idx - 1].time.match(/اليوم\s*(\d+)/)![1], 10) : 1)) : null;
+            const showDayHeader = hasMultipleDays && (idx === 0 || currentItemDay !== prevItemDay);
             
             return (
-              <div
-                key={item.id || idx}
-                className={`relative rounded-3xl p-5 border transition-all duration-200 shadow-sm hover:shadow-md printable-card ${
-                  isPrayer
-                    ? 'border-[#C58B5C] dark:border-[#D6AD72] bg-[#FAF8F3] dark:bg-[#241D18]'
-                    : 'border-[#F3E6D0] dark:border-[#493A2F] bg-white dark:bg-[#30251E] hover:border-[#4F6F52]'
-                }`}
-              >
+              <React.Fragment key={item.id || idx}>
+                {showDayHeader && (
+                  <div className="pt-4 pb-1">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#3B2A22] dark:bg-[#C58B5C] text-white font-extrabold text-sm shadow-sm">
+                      <Calendar className="w-4 h-4 text-[#D6AD72]" />
+                      <span>
+                        {isRtl ? `📅 برنامج اليوم ${currentItemDay}` : `📅 Day ${currentItemDay} Program`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className={`relative rounded-3xl p-5 border transition-all duration-200 shadow-sm hover:shadow-md printable-card ${
+                    isPrayer
+                      ? 'border-[#C58B5C] dark:border-[#D6AD72] bg-[#FAF8F3] dark:bg-[#241D18]'
+                      : 'border-[#F3E6D0] dark:border-[#493A2F] bg-white dark:bg-[#30251E] hover:border-[#4F6F52]'
+                  }`}
+                >
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
                   
                   {/* Item Image Thumbnail */}
@@ -498,8 +568,9 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
 
                 </div>
               </div>
-            );
-          })}
+            </React.Fragment>
+          );
+        })}
 
         </div>
 

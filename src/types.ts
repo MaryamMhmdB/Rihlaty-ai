@@ -31,11 +31,13 @@ export interface Destination {
 }
 
 export type MobilityOption = 'none' | 'limited' | 'wheelchair' | 'easy_access';
+export type BudgetOption = 'economic' | 'medium' | 'luxury';
 
 export interface TripPlannerInput {
   destination: string;
   duration: string;
   mobility: MobilityOption;
+  budget?: BudgetOption;
   interests: string[];
   preferences: string[];
   date: string;
@@ -69,6 +71,7 @@ export interface ItineraryItem {
   aiRationaleAr: string;
   aiRationaleEn: string;
   category: 'heritage' | 'cafe' | 'dining' | 'prayer' | 'experience' | 'shopping' | 'nature';
+  dayNumber?: number;
   coordinates?: { lat: number; lng: number };
   googleMapsUrl?: string;
   imageUrl?: string;

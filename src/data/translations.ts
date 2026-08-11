@@ -28,10 +28,19 @@ export const translations = {
     timeLabel: '2. الوقت المتاح',
     mobilityLabel: '3. احتياجات الحركة وإمكانية الوصول',
     interestsLabel: '4. اهتماماتك الرئيسية',
-    preferencesLabel: '5. تفضيلاتك والتجربة',
-    datetimeLabel: '6. تاريخ ووقت الرحلة',
+    budgetLabel: '5. الميزانية المتوقعة',
+    preferencesLabel: '6. تفضيلاتك والتجربة',
+    datetimeLabel: '7. تاريخ ووقت الرحلة',
     generateBtn: '✨ أنشئ رحلتي',
-    generatingText: 'جاري صياغة رحلتك ومراعاة أوقات الصلاة والطقس بالذكاء الاصطناعي...',
+    generatingText: 'جاري صياغة رحلتك ومراعاة أوقات الصلاة والطقس والميزانية بالذكاء الاصطناعي...',
+    
+    // Budget Options
+    budgetEco: 'اقتصادي',
+    budgetEcoDesc: 'مطاعم شعبية وتراثية، أنشطة مجانية ومنخفضة التكلفة',
+    budgetMedium: 'متوسط',
+    budgetMediumDesc: 'توازن بين الأنشطة والجولات والمطاعم الموصى بها',
+    budgetLuxury: 'فاخر',
+    budgetLuxuryDesc: 'مطاعم عالمية وراقية، تجارب حصرية وخاصة',
     
     // Destinations
     destAlula: 'العلا',
@@ -50,6 +59,9 @@ export const translations = {
     time5h: '5 ساعات',
     timeFullDay: 'يوم كامل',
     timeMultiDay: 'أكثر من يوم',
+    selectDaysCount: 'كم عدد الأيام؟',
+    daysLabel: 'أيام',
+    dayTwo: 'يومان',
     
     // Interests
     intHistory: 'التاريخ والتراث',
@@ -148,10 +160,19 @@ export const translations = {
     timeLabel: '2. Available Time',
     mobilityLabel: '3. Mobility & Accessibility Needs',
     interestsLabel: '4. Main Interests',
-    preferencesLabel: '5. Preferences & Comfort',
-    datetimeLabel: '6. Date & Start Time',
+    budgetLabel: '5. Expected Budget',
+    preferencesLabel: '6. Preferences & Comfort',
+    datetimeLabel: '7. Date & Start Time',
     generateBtn: '✨ Generate Itinerary',
-    generatingText: 'AI is analyzing prayer times, temperature, crowds, and accessibility...',
+    generatingText: 'AI is analyzing prayer times, temperature, budget level, and accessibility...',
+    
+    // Budget Options
+    budgetEco: 'Economy',
+    budgetEcoDesc: 'Local & heritage dining, free & budget-friendly spots',
+    budgetMedium: 'Moderate',
+    budgetMediumDesc: 'Balanced tours, top local experiences & dining',
+    budgetLuxury: 'Luxury',
+    budgetLuxuryDesc: 'Fine dining, upscale venues & exclusive experiences',
     
     // Destinations
     destAlula: 'AlUla',
@@ -170,6 +191,9 @@ export const translations = {
     time5h: '5 Hours',
     timeFullDay: 'Full Day',
     timeMultiDay: 'Multiple Days',
+    selectDaysCount: 'How many days?',
+    daysLabel: 'Days',
+    dayTwo: '2 Days',
     
     // Interests
     intHistory: 'History & Heritage',
