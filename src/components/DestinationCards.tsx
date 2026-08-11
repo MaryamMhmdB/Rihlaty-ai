@@ -6,6 +6,13 @@ import { translations } from '../data/translations';
 import { PalmIcon } from './PalmIcon';
 import { ImageWithFallback } from './ImageWithFallback';
 import { getGoogleMapsUrl } from '../utils/mapUtils';
+import alulaImg from '../assets/images/alula_hegra_tomb_1786293300477.jpg';
+import diriyahImg from '../assets/images/diriyah_atturaif_1786293313850.jpg';
+import jeddahImg from '../assets/images/jeddah_albalad_1786293328938.jpg';
+import riyadhImg from '../assets/images/riyadh_masmak_fortress_1786344318620.jpg';
+import abhaImg from '../assets/images/abha_green_mountain_1786344292130.jpg';
+import taifImg from '../assets/images/taif_heritage_mountains_1786344305214.jpg';
+import alahsaImg from '../assets/images/alahsa_oasis_palms_1786344334756.jpg';
 
 interface DestinationCardsProps {
   lang: Language;
@@ -13,13 +20,13 @@ interface DestinationCardsProps {
 }
 
 const FALLBACK_MAP: Record<string, string> = {
-  alula: '/images/alula_hegra_tomb_1786293300477.jpg',
-  diriyah: '/images/diriyah_atturaif_1786293313850.jpg',
-  jeddah: '/images/jeddah_albalad_1786293328938.jpg',
-  riyadh: '/images/riyadh_masmak_fortress_1786344318620.jpg',
-  abha: '/images/abha_green_mountain_1786293300477.jpg',
-  taif: '/images/taif_heritage_mountains_1786344305214.jpg',
-  alahsa: '/images/alahsa_oasis_palms_1786344334756.jpg',
+  alula: alulaImg,
+  diriyah: diriyahImg,
+  jeddah: jeddahImg,
+  riyadh: riyadhImg,
+  abha: abhaImg,
+  taif: taifImg,
+  alahsa: alahsaImg,
 };
 
 export const DestinationCards: React.FC<DestinationCardsProps> = ({ lang, onSelectDestination }) => {

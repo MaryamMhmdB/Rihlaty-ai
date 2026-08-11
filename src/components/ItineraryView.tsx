@@ -13,6 +13,7 @@ import { getSaudiCityData } from '../data/saudiData';
 import { getItineraryItemImage, getDestinationFallbackImage } from '../utils/imageHelper';
 import { getGoogleMapsUrl } from '../utils/mapUtils';
 import { WeatherModal } from './WeatherModal';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface ItineraryViewProps {
   itinerary: ItineraryResult;
@@ -470,15 +471,11 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
                   
                   {/* Item Image Thumbnail */}
                   <div className="w-full md:w-48 lg:w-56 h-40 shrink-0 rounded-2xl overflow-hidden border border-[#F3E6D0] dark:border-[#493A2F] relative bg-gray-100 dark:bg-[#241D18]">
-                    <img 
+                    <ImageWithFallback 
                       src={itemImg} 
+                      fallbackSrc={getDestinationFallbackImage(itinerary.destinationNameAr || itinerary.destinationNameEn, item.category)}
                       alt={isRtl ? item.titleAr : item.titleEn} 
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = getDestinationFallbackImage(itinerary.destinationNameAr || itinerary.destinationNameEn, item.category);
-                      }}
                     />
                     <div className="absolute top-2.5 right-2.5 rtl:right-auto rtl:left-2.5 px-2.5 py-1 rounded-full bg-[#3B2A22]/85 text-white text-[11px] font-bold backdrop-blur-xs flex items-center gap-1">
                       <span>⏱️ {item.time}</span>

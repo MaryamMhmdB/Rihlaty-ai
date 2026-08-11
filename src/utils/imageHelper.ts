@@ -1,51 +1,69 @@
+import alulaTombImg from '../assets/images/alula_hegra_tomb_1786293300477.jpg';
+import alulaHeroImg from '../assets/images/alula_hero_1786210418895.jpg';
+import diriyahAtturaifImg from '../assets/images/diriyah_atturaif_1786293313850.jpg';
+import jeddahAlbaladImg from '../assets/images/jeddah_albalad_1786293328938.jpg';
+import jeddahBaladAltImg from '../assets/images/jeddah_balad_1786210446249.jpg';
+import riyadhMasmakImg from '../assets/images/riyadh_masmak_fortress_1786344318620.jpg';
+import abhaGreenMountainImg from '../assets/images/abha_green_mountain_1786344292130.jpg';
+import taifHeritageImg from '../assets/images/taif_heritage_mountains_1786344305214.jpg';
+import alahsaOasisImg from '../assets/images/alahsa_oasis_palms_1786344334756.jpg';
+import ithraCenterImg from '../assets/images/ithra_center_dammam_1786367340612.jpg';
+import elephantRockImg from '../assets/images/elephant_rock_alula_1786367294248.jpg';
+import alqarahMountainImg from '../assets/images/alqarah_mountain_alahsa_1786367310661.jpg';
+import rijalAlmaaImg from '../assets/images/rijal_almaa_abha_1786367326752.jpg';
+import heritageCafeImg from '../assets/images/saudi_heritage_cafe_1786347078876.jpg';
+import historicMosqueImg from '../assets/images/saudi_historic_mosque_1786347091803.jpg';
+import traditionalDiningImg from '../assets/images/saudi_traditional_dining_1786347105130.jpg';
+import artisanSoukImg from '../assets/images/saudi_artisan_souk_1786347116457.jpg';
+
 export const DESTINATION_IMAGES: Record<string, string> = {
-  alula: '/images/alula_hegra_tomb_1786293300477.jpg',
-  diriyah: '/images/diriyah_atturaif_1786293313850.jpg',
-  jeddah: '/images/jeddah_albalad_1786293328938.jpg',
-  riyadh: '/images/riyadh_masmak_fortress_1786344318620.jpg',
-  abha: '/images/abha_green_mountain_1786344292130.jpg',
-  taif: '/images/taif_heritage_mountains_1786344305214.jpg',
-  alahsa: '/images/alahsa_oasis_palms_1786344334756.jpg',
-  dammam: '/images/ithra_center_dammam_1786367340612.jpg',
-  khobar: '/images/ithra_center_dammam_1786367340612.jpg',
-  qatif: '/images/ithra_center_dammam_1786367340612.jpg',
-  makkah: '/images/jeddah_albalad_1786293328938.jpg',
-  madinah: '/images/alula_hegra_tomb_1786293300477.jpg',
-  jazan: '/images/saudi_traditional_dining_1786347105130.jpg',
-  najran: '/images/saudi_artisan_souk_1786347116457.jpg',
-  hail: '/images/riyadh_masmak_fortress_1786344318620.jpg',
-  tabuk: '/images/alula_hegra_tomb_1786293300477.jpg'
+  alula: alulaTombImg,
+  diriyah: diriyahAtturaifImg,
+  jeddah: jeddahAlbaladImg,
+  riyadh: riyadhMasmakImg,
+  abha: abhaGreenMountainImg,
+  taif: taifHeritageImg,
+  alahsa: alahsaOasisImg,
+  dammam: ithraCenterImg,
+  khobar: ithraCenterImg,
+  qatif: ithraCenterImg,
+  makkah: jeddahAlbaladImg,
+  madinah: alulaTombImg,
+  jazan: traditionalDiningImg,
+  najran: artisanSoukImg,
+  hail: riyadhMasmakImg,
+  tabuk: alulaTombImg
 };
 
 // Specific attraction-level real photos mapping
 export const ATTRACTION_IMAGES: Array<{ keywords: string[]; src: string }> = [
-  { keywords: ['مصمك', 'masmak'], src: '/images/riyadh_masmak_fortress_1786344318620.jpg' },
-  { keywords: ['سوق الزل', 'zal souk', 'souk al-zal', 'الزل'], src: '/images/saudi_artisan_souk_1786347116457.jpg' },
-  { keywords: ['طريف', 'turaif', 'بجيري', 'bujairi', 'درعية', 'diriyah', 'سلوى'], src: '/images/diriyah_atturaif_1786293313850.jpg' },
-  { keywords: ['فيل', 'elephant rock'], src: '/images/elephant_rock_alula_1786367294248.jpg' },
-  { keywords: ['حجر', 'hegra', 'مدائن صالح', 'قصر الفريد'], src: '/images/alula_hegra_tomb_1786293300477.jpg' },
-  { keywords: ['بلدة قديمة بالعلا', 'alula old town'], src: '/images/alula_hero_1786210418895.jpg' },
-  { keywords: ['نصيف', 'nassif', 'بلد', 'al-balad', 'جدة التاريخية'], src: '/images/jeddah_albalad_1786293328938.jpg' },
-  { keywords: ['علوي', 'alawi', 'ندى', 'nada'], src: '/images/jeddah_balad_1786210446249.jpg' },
-  { keywords: ['رجال ألمع', 'rijal almaa'], src: '/images/rijal_almaa_abha_1786367326752.jpg' },
-  { keywords: ['الجبل الأخضر', 'green mountain'], src: '/images/abha_green_mountain_1786344292130.jpg' },
-  { keywords: ['شبرا', 'shubra', 'ورد طائفي', 'taif rose'], src: '/images/taif_heritage_mountains_1786344305214.jpg' },
-  { keywords: ['قارة', 'alqarah', 'كهوف', 'caves'], src: '/images/alqarah_mountain_alahsa_1786367310661.jpg' },
-  { keywords: ['إبراهيم', 'ibrahim palace', 'قيصرية', 'qaysariya', 'نخيل الأحساء'], src: '/images/alahsa_oasis_palms_1786344334756.jpg' },
-  { keywords: ['إثراء', 'ithra', 'القرية التراثية', 'كورنيش الدمام', 'دمام', 'خبر', 'قطيف', 'dammam', 'khobar', 'qatif', 'مرجان'], src: '/images/ithra_center_dammam_1786367340612.jpg' },
-  { keywords: ['قهوة', 'coffee', 'مقهى', 'cafe', 'شاي'], src: '/images/saudi_heritage_cafe_1786347078876.jpg' },
-  { keywords: ['مطعم', 'restaurant', 'غداء', 'lunch', 'عشاء', 'dining', 'قرية نجدية', 'مأكولات', 'مكبوس', 'حنيذ', 'أرز'], src: '/images/saudi_traditional_dining_1786347105130.jpg' },
-  { keywords: ['جامع', 'مسجد', 'mosque', 'صلاة', 'prayer', 'مصلى'], src: '/images/saudi_historic_mosque_1786347091803.jpg' },
-  { keywords: ['سوق', 'souk', 'معرض', 'متحف', 'متحف التراث'], src: '/images/saudi_artisan_souk_1786347116457.jpg' }
+  { keywords: ['مصمك', 'masmak'], src: riyadhMasmakImg },
+  { keywords: ['سوق الزل', 'zal souk', 'souk al-zal', 'الزل'], src: artisanSoukImg },
+  { keywords: ['طريف', 'turaif', 'بجيري', 'bujairi', 'درعية', 'diriyah', 'سلوى'], src: diriyahAtturaifImg },
+  { keywords: ['فيل', 'elephant rock'], src: elephantRockImg },
+  { keywords: ['حجر', 'hegra', 'مدائن صالح', 'قصر الفريد'], src: alulaTombImg },
+  { keywords: ['بلدة قديمة بالعلا', 'alula old town'], src: alulaHeroImg },
+  { keywords: ['نصيف', 'nassif', 'بلد', 'al-balad', 'جدة التاريخية'], src: jeddahAlbaladImg },
+  { keywords: ['علوي', 'alawi', 'ندى', 'nada'], src: jeddahBaladAltImg },
+  { keywords: ['رجال ألمع', 'rijal almaa'], src: rijalAlmaaImg },
+  { keywords: ['الجبل الأخضر', 'green mountain'], src: abhaGreenMountainImg },
+  { keywords: ['شبرا', 'shubra', 'ورد طائفي', 'taif rose'], src: taifHeritageImg },
+  { keywords: ['قارة', 'alqarah', 'كهوف', 'caves'], src: alqarahMountainImg },
+  { keywords: ['إبراهيم', 'ibrahim palace', 'قيصرية', 'qaysariya', 'نخيل الأحساء'], src: alahsaOasisImg },
+  { keywords: ['إثراء', 'ithra', 'القرية التراثية', 'كورنيش الدمام', 'دمام', 'خبر', 'قطيف', 'dammam', 'khobar', 'qatif', 'مرجان'], src: ithraCenterImg },
+  { keywords: ['قهوة', 'coffee', 'مقهى', 'cafe', 'شاي'], src: heritageCafeImg },
+  { keywords: ['مطعم', 'restaurant', 'غداء', 'lunch', 'عشاء', 'dining', 'قرية نجدية', 'مأكولات', 'مكبوس', 'حنيذ', 'أرز'], src: traditionalDiningImg },
+  { keywords: ['جامع', 'مسجد', 'mosque', 'صلاة', 'prayer', 'مصلى'], src: historicMosqueImg },
+  { keywords: ['سوق', 'souk', 'معرض', 'متحف', 'متحف التراث'], src: artisanSoukImg }
 ];
 
 export const CATEGORY_IMAGES: Record<string, string> = {
-  prayer: '/images/saudi_historic_mosque_1786347091803.jpg',
-  cafe: '/images/saudi_heritage_cafe_1786347078876.jpg',
-  dining: '/images/saudi_traditional_dining_1786347105130.jpg',
-  shopping: '/images/saudi_artisan_souk_1786347116457.jpg',
-  heritage: '/images/alula_hegra_tomb_1786293300477.jpg',
-  experience: '/images/saudi_artisan_souk_1786347116457.jpg'
+  prayer: historicMosqueImg,
+  cafe: heritageCafeImg,
+  dining: traditionalDiningImg,
+  shopping: artisanSoukImg,
+  heritage: alulaTombImg,
+  experience: artisanSoukImg
 };
 
 export function getDestinationFallbackImage(destinationName?: string, category?: string): string {

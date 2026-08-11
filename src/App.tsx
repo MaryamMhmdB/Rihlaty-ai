@@ -83,7 +83,7 @@ export default function App() {
     <div className={`min-h-screen bg-[#FAF8F3] dark:bg-[#171310] text-[#3B2A22] dark:text-[#FAF8F3] transition-colors duration-300 ${lang === 'ar' ? 'font-arabic' : 'font-sans'}`}>
       
       {/* Navigation */}
-      <div className="print:hidden">
+      <div className="sticky top-0 z-50 print:hidden">
         <Navbar
           lang={lang}
           setLang={setLang}

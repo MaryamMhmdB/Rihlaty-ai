@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ lang, setLang, theme, setTheme, 
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 dark:bg-[#241D18]/95 backdrop-blur-md border-b border-[#F3E6D0] dark:border-[#493A2F] transition-all duration-300">
+    <nav className="w-full bg-white/95 dark:bg-[#241D18]/95 backdrop-blur-md border-b border-[#F3E6D0] dark:border-[#493A2F] transition-all duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 gap-2 sm:gap-4">
           

@@ -4,6 +4,7 @@ import { CITY_CULINARY_GUIDES, TraditionalRestaurant, HeritageDish, getCityCulin
 import { Language } from '../types';
 import { getGoogleMapsUrl } from '../utils/mapUtils';
 import { getDestinationFallbackImage } from '../utils/imageHelper';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface HeritageFoodGuideProps {
   lang: Language;
@@ -193,16 +194,11 @@ export const HeritageFoodGuide: React.FC<HeritageFoodGuideProps> = ({ lang, onSe
                   >
                     {/* Dish Photo */}
                     <div className="relative sm:w-44 h-40 sm:h-auto shrink-0 overflow-hidden bg-gray-100 dark:bg-gray-800">
-                      <img
+                      <ImageWithFallback
                         src={dish.imageUrl}
+                        fallbackSrc={getDestinationFallbackImage(currentGuide.cityNameAr, 'dining')}
                         alt={isRtl ? dish.nameAr : dish.nameEn}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = getDestinationFallbackImage(currentGuide.cityNameAr, 'dining');
-                        }}
                       />
                       <button
                         type="button"
@@ -302,16 +298,11 @@ export const HeritageFoodGuide: React.FC<HeritageFoodGuideProps> = ({ lang, onSe
                     >
                       {/* Restaurant Image Banner */}
                       <div className="relative h-44 sm:h-48 w-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                        <img
+                        <ImageWithFallback
                           src={rest.imageUrl}
+                          fallbackSrc={getDestinationFallbackImage(currentGuide.cityNameAr, 'dining')}
                           alt={isRtl ? rest.nameAr : rest.nameEn}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = getDestinationFallbackImage(currentGuide.cityNameAr, 'dining');
-                          }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                         

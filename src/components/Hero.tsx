@@ -4,6 +4,8 @@ import { Language } from '../types';
 import { translations } from '../data/translations';
 import { PalmIcon } from './PalmIcon';
 import { ImageWithFallback } from './ImageWithFallback';
+import alulaTombImg from '../assets/images/alula_hegra_tomb_1786293300477.jpg';
+import alulaHeroImg from '../assets/images/alula_hero_1786210418895.jpg';
 
 interface HeroProps {
   lang: Language;
@@ -87,8 +89,8 @@ export const Hero: React.FC<HeroProps> = ({ lang, onStartPlanning, onExploreDest
           <div className="lg:col-span-4 bg-[#3B2A22] dark:bg-[#30251E] text-white rounded-3xl p-5 border border-[#F3E6D0] dark:border-[#493A2F] flex flex-col justify-between relative overflow-hidden shadow-sm min-h-[360px] transition-colors">
             {/* Background Image with Overlay */}
             <ImageWithFallback
-              src="/images/alula_hegra_tomb_1786293300477.jpg"
-              fallbackSrc="/images/alula_hero_1786210418895.jpg"
+              src={alulaTombImg}
+              fallbackSrc={alulaHeroImg}
               alt="AlUla Heritage"
               className="absolute inset-0 w-full h-full object-cover opacity-60 hover:scale-105 transition-transform duration-700 pointer-events-none"
             />

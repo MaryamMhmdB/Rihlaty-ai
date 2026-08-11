@@ -1,4 +1,10 @@
 import { Destination, ItineraryResult } from '../types';
+import alulaImg from '../assets/images/alula_hegra_tomb_1786293300477.jpg';
+import jeddahImg from '../assets/images/jeddah_albalad_1786293328938.jpg';
+import riyadhImg from '../assets/images/riyadh_masmak_fortress_1786344318620.jpg';
+import abhaImg from '../assets/images/abha_green_mountain_1786344292130.jpg';
+import taifImg from '../assets/images/taif_heritage_mountains_1786344305214.jpg';
+import alahsaImg from '../assets/images/alahsa_oasis_palms_1786344334756.jpg';
 
 export const DESTINATIONS: Destination[] = [
   {
@@ -11,7 +17,7 @@ export const DESTINATIONS: Destination[] = [
     tagEn: 'UNESCO World Heritage Site',
     descriptionAr: 'واحة تاريخية مذهلة تضم مدائن صالح (الحِجر)، جبل الفيل، والبلدة القديمة وسط جبال شاهقة ومناظر طبيعية ساحرة.',
     descriptionEn: 'A breathtaking historic oasis featuring Hegra (Mada\'in Salih), Elephant Rock, and Old Town set among majestic sandstone mountains.',
-    image: '/images/alula_hegra_tomb_1786293300477.jpg',
+    image: alulaImg,
     unesco: true,
     rating: 4.9,
     coordinates: { lat: 26.6174, lng: 37.9221 },
@@ -37,7 +43,7 @@ export const DESTINATIONS: Destination[] = [
     tagEn: 'Gateway to Mecca & Red Sea Heritage',
     descriptionAr: 'زوايا دافئة، بيوت الحجر المرجاني المزخرفة بالرواشين الخشبية القديمة، وأسوق تفوح بعبق البخور والقهوة السعودية.',
     descriptionEn: 'Coral stone merchant houses adorned with intricate wooden Roshan balconies, fragrant spice souks, and historic squares.',
-    image: '/images/jeddah_albalad_1786293328938.jpg',
+    image: jeddahImg,
     unesco: true,
     rating: 4.9,
     coordinates: { lat: 21.4858, lng: 39.1879 },
@@ -63,7 +69,7 @@ export const DESTINATIONS: Destination[] = [
     tagEn: 'Al Masmak, Diriyah & Souk Al-Zal',
     descriptionAr: 'عاصمة التراث والأصالة، تضم قصر المصمك التاريخي، حي الطريف بالدرعية (اليونسكو)، سوق الزل التراثي والمتحف الوطني.',
     descriptionEn: 'The capital of heritage and progress, combining Al Masmak Fortress, At-Turaif in Diriyah (UNESCO site), traditional souks, and museums.',
-    image: '/images/riyadh_masmak_fortress_1786344318620.jpg',
+    image: riyadhImg,
     unesco: true,
     rating: 4.9,
     coordinates: { lat: 24.6312, lng: 46.7133 },
@@ -85,11 +91,11 @@ export const DESTINATIONS: Destination[] = [
     nameEn: 'Abha',
     subtitleAr: 'سيدة الضباب وعروس الجنوب',
     subtitleEn: 'Queen of Fog & Southern Heritage',
-    tagAr: 'قرية رجال ألمع والجبل الأخضر',
+    tagAr: 'قريةرجال ألمع والجبل الأخضر',
     tagEn: 'Rijal Almaa Village & Green Mountain',
     descriptionAr: 'مناظر جبلية خلابة، قرية رجال ألمع التراثية العريقة بقصورها الحجرية الملونة، وأجواء عليلة لطيفة في مرتفعات عسير.',
     descriptionEn: 'Stunning mountain views, ancient stone heritage villages with colorful Asiri art, and refreshing cool mountain air.',
-    image: '/images/abha_green_mountain_1786344292130.jpg',
+    image: abhaImg,
     unesco: true,
     rating: 4.9,
     coordinates: { lat: 18.2164, lng: 42.5053 },
@@ -115,7 +121,7 @@ export const DESTINATIONS: Destination[] = [
     tagEn: 'Shubra Palace & Souk Okadh',
     descriptionAr: 'مزارع الورد الطائفي التراثية، قصر شبرا التاريخي، وتلفريك الهدا المطل على جبال السروات.',
     descriptionEn: 'Famous Taif rose farms, historic Shubra Palace, and Al-Hada cable car over Sarawat mountains.',
-    image: '/images/taif_shubra_palace_1786344304825.jpg',
+    image: taifImg,
     unesco: false,
     rating: 4.7,
     coordinates: { lat: 21.2703, lng: 40.4158 },
@@ -141,7 +147,7 @@ export const DESTINATIONS: Destination[] = [
     tagEn: 'UNESCO World Heritage Site',
     descriptionAr: 'واحة نخيل تضم أكثر من 2.5 مليون نخلة، جبل القارة بكهوفه الباردة، قصر إبراهيم الأثري، وسوق القيصرية التراثي.',
     descriptionEn: 'Vast oasis featuring over 2.5 million date palms, Al-Qarah natural cave mountain, historic Ibrahim Palace, and Al-Qaysariya Souk.',
-    image: '/images/alahsa_oasis_palms_1786344334756.jpg',
+    image: alahsaImg,
     unesco: true,
     rating: 4.9,
     coordinates: { lat: 25.3833, lng: 49.5833 },
