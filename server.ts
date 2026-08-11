@@ -186,12 +186,12 @@ Constraints & Preferences:
 - Date & Start Time: ${date || '2026-08-08'} at ${time || '09:00'}
 - Additional Notes: ${notes || 'None'}
 
-CRITICAL MULTI-DAY & ACCURACY RULES:
-1. MULTI-DAY ITINERARY STRUCTURE (STRICT ZERO REPETITION):
-   - If Available Time is multi-day (e.g., "3 أيام" or "5 Days"), you MUST generate a comprehensive day-by-day plan covering all requested days.
-   - Every item MUST include "dayNumber" (1, 2, 3...) corresponding to its day.
-   - In "time", prefix with the day label if multi-day, e.g. "[اليوم 1] 09:30" or "[Day 1] 09:30".
-   - ABSOLUTELY ZERO REPETITION ACROSS DAYS: Day 1, Day 2, Day 3, etc., MUST feature COMPLETELY DIFFERENT real landmarks, museums, markets, cafes, and dining spots in the selected city.
+CRITICAL DURATION & MULTI-DAY RULES:
+1. SINGLE-DAY vs MULTI-DAY ITINERARY STRUCTURE:
+   - If Available Time is specified in hours (e.g., "3 ساعات", "5 ساعات", "3 hours", "5 Hours") or "يوم كامل" / "1 Day", you MUST generate a SINGLE-DAY plan where EVERY item has "dayNumber": 1. Do NOT generate multiple days!
+   - If Available Time explicitly specifies multiple days (e.g., "2 يومان", "3 أيام", "5 Days", "Multiple Days"), you MUST generate a day-by-day plan covering all requested days (dayNumber: 1, 2, 3...).
+   - For single-day trips of 3 hours ("3 ساعات"), generate ONLY 3 concise, high-value stops (e.g., heritage landmark + cafe + prayer/meal) fitting within 3 hours.
+   - ABSOLUTELY ZERO REPETITION ACROSS DAYS for multi-day plans: Day 1, Day 2, Day 3, etc., MUST feature COMPLETELY DIFFERENT real landmarks, museums, markets, cafes, and dining spots in the selected city.
    - NEVER repeat the exact same attraction, restaurant, or routine on multiple days. Every day must be a distinct, fresh exploration.
 
 2. REAL & VERIFIABLE LOCATIONS ONLY:
@@ -285,7 +285,7 @@ Return ONLY a JSON object matching this schema:
 
       if (response.text) {
         const json = JSON.parse(response.text);
-        const cleaned = validateAndCleanItinerary(json, cityData);
+        const cleaned = validateAndCleanItinerary(json, cityData, duration);
         return res.json({ success: true, data: cleaned });
       }
     } catch (error) {
@@ -314,16 +314,37 @@ function getLogicalWeatherIcon(cityName: string, timeStr: string): string {
 }
 
 // Helper to sanitize & validate generated itinerary
-function validateAndCleanItinerary(json: any, cityData: any) {
+function validateAndCleanItinerary(json: any, cityData: any, requestedDuration: string = '') {
   if (!json || typeof json !== 'object') return json;
 
   json.destinationNameAr = cityData.nameAr;
   json.destinationNameEn = cityData.nameEn;
 
+  const isMultiDay = requestedDuration && (
+    requestedDuration.includes("أيام") || 
+    requestedDuration.includes("يومان") || 
+    requestedDuration.includes("أكثر من يوم") || 
+    requestedDuration.includes("days") || 
+    requestedDuration.includes("Days") || 
+    requestedDuration.includes("Multiple")
+  );
+
   if (Array.isArray(json.items)) {
     json.items = json.items.map((item: any) => {
       let locAr = (item.locationAr || item.titleAr || cityData.nameAr).replace(/\s*[\u2014\u2013\-\|]+\s*/g, '، ').trim();
       let locEn = (item.locationEn || item.titleEn || cityData.nameEn).replace(/\s*[\u2014\u2013\-\|]+\s*/g, ', ').trim();
+
+      // Enforce dayNumber = 1 if user requested hours/single day
+      let dayNumber = item.dayNumber || 1;
+      if (!isMultiDay) {
+        dayNumber = 1;
+      }
+
+      // Clean prefix from time if single day
+      let itemTime = item.time || "09:00";
+      if (!isMultiDay && typeof itemTime === 'string') {
+        itemTime = itemTime.replace(/^\[.*?\]\s*/g, '').trim();
+      }
 
       // Ensure city name is part of location if missing
       if (!locAr.includes(cityData.nameAr)) {
@@ -347,11 +368,11 @@ function validateAndCleanItinerary(json: any, cityData: any) {
       const nonWeatherIcons = ['☕', '🕌', '🍽️', '🏛️', '🛍️', '🚗', '♿', '📍', '⭐', '🗺️', '🏰', '📷', '🕋', '🌹', '🌴', '🏔️', '⛰️'];
       let wIcon = item.weatherIcon;
       if (!wIcon || nonWeatherIcons.includes(wIcon)) {
-        wIcon = getLogicalWeatherIcon(cityData.nameAr, item.time);
+        wIcon = getLogicalWeatherIcon(cityData.nameAr, itemTime);
       }
 
       if (item.isPrayerTime || item.category === "prayer") {
-        const hour = parseInt((item.time || "12:00").split(":")[0], 10);
+        const hour = parseInt((itemTime || "12:00").split(":")[0], 10);
         let pNameAr = `صلاة الظهر (${cityData.dhuhr})`;
         let pNameEn = `Dhuhr Prayer (${cityData.dhuhr})`;
         if (hour >= 15 && hour < 17) {
@@ -364,6 +385,8 @@ function validateAndCleanItinerary(json: any, cityData: any) {
 
         return {
           ...item,
+          dayNumber,
+          time: itemTime,
           isPrayerTime: true,
           category: "prayer",
           locationAr: locAr,
@@ -378,6 +401,8 @@ function validateAndCleanItinerary(json: any, cityData: any) {
 
       return {
         ...item,
+        dayNumber,
+        time: itemTime,
         locationAr: locAr,
         locationEn: locEn,
         coordinates: itemCoords,
@@ -780,23 +805,46 @@ function generateFallbackItinerary(destName: string, duration: string, mobility:
   const name = destName || "الرياض";
   const cityData = getCityData(name);
 
-  const dayMatch = duration ? duration.match(/(\d+)/) : null;
-  const totalDays = dayMatch 
-    ? Math.min(14, Math.max(1, parseInt(dayMatch[1], 10))) 
-    : (duration && (duration.includes("أكثر") || duration.includes("يومان") || duration.includes("Multiple")) ? 2 : 1);
+  const isMultiDay = duration && (
+    duration.includes("أيام") || 
+    duration.includes("يومان") || 
+    duration.includes("أكثر من يوم") || 
+    duration.includes("days") || 
+    duration.includes("Days") || 
+    duration.includes("Multiple")
+  );
+
+  let totalDays = 1;
+  if (isMultiDay) {
+    const dayMatch = duration.match(/(\d+)/);
+    if (dayMatch) {
+      totalDays = Math.min(14, Math.max(1, parseInt(dayMatch[1], 10)));
+    } else {
+      totalDays = 2;
+    }
+  }
 
   let generatedItems: any[] = [];
 
   for (let day = 1; day <= totalDays; day++) {
-    const dayBaseItems = getCityDayItems(name, day, cityData, isWheelchair);
+    let dayBaseItems = getCityDayItems(name, day, cityData, isWheelchair);
+
+    // If single day and 3 hours requested, keep it to 3 concise stops
+    if (!isMultiDay && duration && (duration.includes("3") || duration.includes("٣"))) {
+      dayBaseItems = dayBaseItems.slice(0, 3);
+    }
     
     dayBaseItems.forEach((base, idx) => {
+      const timeStr = isMultiDay ? base.time : base.time.replace(/^\[.*?\]\s*/g, '').trim();
+      const titleCleanAr = isMultiDay ? base.titleAr : base.titleAr.replace(/\s*-\s*اليوم \d+/g, '');
+      const titleCleanEn = isMultiDay ? base.titleEn : base.titleEn.replace(/\s*-\s*Day \d+/g, '');
+
       generatedItems.push({
         id: `f-d${day}-${idx + 1}`,
         dayNumber: day,
-        time: base.time,
-        titleAr: base.titleAr,
-        titleEn: base.titleEn,
+        time: timeStr,
+        titleAr: titleCleanAr,
+        titleEn: titleCleanEn,
         locationAr: base.locationAr,
         locationEn: base.locationEn,
         distanceAr: "600 متر",
@@ -815,8 +863,12 @@ function generateFallbackItinerary(destName: string, duration: string, mobility:
         crowdLevelEn: "Low Density",
         crowdStatus: "low",
         category: base.category,
-        aiRationaleAr: `برنامج اليوم ${day} مبتكر ومخصص لزيارة معالم جديدة وغير مكررة في ${cityData.nameAr}.`,
-        aiRationaleEn: `Day ${day} itinerary uniquely customized with distinct new landmarks in ${cityData.nameEn}.`,
+        aiRationaleAr: isMultiDay 
+          ? `برنامج اليوم ${day} مبتكر ومخصص لزيارة معالم جديدة وغير مكررة في ${cityData.nameAr}.`
+          : `برنامج مخصص لزيارة معالم ${cityData.nameAr} خلال ${duration}.`,
+        aiRationaleEn: isMultiDay 
+          ? `Day ${day} itinerary uniquely customized with distinct new landmarks in ${cityData.nameEn}.`
+          : `Customized itinerary for ${cityData.nameEn} within ${duration}.`,
         sourceAr: "المصدر: هيئة التراث السعودية وروح السعودية",
         sourceEn: "Source: Saudi Heritage Authority & Visit Saudi"
       });
