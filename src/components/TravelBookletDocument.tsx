@@ -289,13 +289,18 @@ export const TravelBookletDocument: React.FC<TravelBookletDocumentProps> = ({ it
                           rel="noopener noreferrer"
                           style={{
                             display: 'inline-block',
-                            color: '#3B2A22',
+                            color: '#1E3A8A',
+                            backgroundColor: '#E0F2FE',
+                            border: '1px solid #7DD3FC',
+                            borderRadius: '6px',
+                            padding: '4px 10px',
                             fontWeight: 800,
-                            textDecoration: 'underline',
-                            fontSize: '11px'
+                            textDecoration: 'none',
+                            fontSize: '11px',
+                            lineHeight: '1.4'
                           }}
                         >
-                          🗺️ {isRtl ? 'رابط الخريطة' : 'Google Maps Link'}
+                          🗺️ {isRtl ? 'افتح الموقع على الخريطة' : 'Open Google Maps Link'}
                         </a>
                       </td>
                     </tr>
@@ -352,8 +357,24 @@ export const TravelBookletDocument: React.FC<TravelBookletDocumentProps> = ({ it
                     </td>
                     <td style={{ padding: '8px 12px', border: '1px solid #E8D9C5', color: '#4F6F52', fontWeight: 700 }}>
                       <div style={{ marginBottom: '4px' }}>📍 {isRtl ? item.locationAr : item.locationEn}</div>
-                      <a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#3B2A22', textDecoration: 'underline' }}>
-                        🗺️ {isRtl ? 'رابط الخريطة' : 'Map Link'}
+                      <a 
+                        href={mapUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ 
+                          display: 'inline-block',
+                          color: '#1E3A8A', 
+                          backgroundColor: '#E0F2FE',
+                          border: '1px solid #7DD3FC',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          fontSize: '11px',
+                          lineHeight: '1.4'
+                        }}
+                      >
+                        🗺️ {isRtl ? 'افتح الخريطة' : 'Open Map'}
                       </a>
                     </td>
                   </tr>

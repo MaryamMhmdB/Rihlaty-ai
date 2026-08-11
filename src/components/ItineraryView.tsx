@@ -167,6 +167,38 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
         heightLeft -= pdfHeight;
       }
 
+      // Add clickable hyperlink annotations for all <a> elements (e.g. Google Maps links)
+      try {
+        const targetRect = exportTarget.getBoundingClientRect();
+        const pxToPtRatio = pdfWidth / (exportTarget.offsetWidth || 790);
+        const totalPages = Math.max(1, Math.ceil(calculatedImgHeight / pdfHeight));
+        const linkEls = Array.from(exportTarget.querySelectorAll<HTMLAnchorElement>('a[href]'));
+
+        linkEls.forEach((linkEl) => {
+          const href = linkEl.getAttribute('href') || linkEl.href;
+          if (!href || href === '#' || href.startsWith('javascript:')) return;
+
+          const rect = linkEl.getBoundingClientRect();
+          const relLeft = rect.left - targetRect.left;
+          const relTop = rect.top - targetRect.top;
+
+          const pdfX = relLeft * pxToPtRatio;
+          const pdfYInFullDoc = relTop * pxToPtRatio;
+          const pdfW = rect.width * pxToPtRatio;
+          const pdfH = rect.height * pxToPtRatio;
+
+          const pageIndex = Math.floor(pdfYInFullDoc / pdfHeight);
+          const pdfYOnPage = pdfYInFullDoc - (pageIndex * pdfHeight);
+
+          if (pageIndex >= 0 && pageIndex < totalPages && pdfW > 0 && pdfH > 0) {
+            pdf.setPage(pageIndex + 1);
+            pdf.link(pdfX, pdfYOnPage, pdfW, pdfH, { url: href });
+          }
+        });
+      } catch (linkErr) {
+        console.warn('Could not attach PDF link annotations:', linkErr);
+      }
+
       // Download PDF file directly
       pdf.save(fileName);
     } catch (err) {
