@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --color-brown: #3B2A22;
+    --color-green: #4F6F52;
+    --color-desert: #C58B5C;
+    --color-sand: #F3E6D0;
+    --color-cream: #FAF8F3;
+    
+    /* Dark Theme palette */
+    --dark-bg: #171310;
+    --dark-surface: #241D18;
+    --dark-card: #30251E;
+    --dark-primary: #C58B5C;
+    --dark-green: #4F6F52;
+    --dark-gold: #D6AD72;
+    --dark-text: #FAF8F3;
+    --dark-text-sub: #C8BDB2;
+    --dark-border: #493A2F;
+  }
+
+  *, *::before, *::after {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-cream);
+    color: var(--color-brown);
+  }
+
+  .dark body {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cairo', 'IBM Plex Sans Arabic', sans-serif;
+  }
+}
+
+/* Print Styles for PDF Export (Saves ONLY the generated plan) */
+@media print {
+  /* Hide all non-printable layout elements */
+  body {
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+  }
+
+  body > div > *:not(#itinerary-results-container) {
+    display: none !important;
+  }
+
+  nav, footer, button, .print\:hidden {
+    display: none !important;
+  }
+
+  #itinerary-results-container {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+  }
+
+  /* Reset colors & shadows for high quality print / PDF */
+  .dark #itinerary-results-container * {
+    color: #1a1a1a !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+  }
+
+  #itinerary-results-container .printable-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    margin-bottom: 12px !important;
+  }
+}
+
+/* Custom scrollbar for clean luxury theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F3;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #171310;
+}
+::-webkit-scrollbar-thumb {
+  background: #C58B5C;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3B2A22;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #D6AD72;
+}

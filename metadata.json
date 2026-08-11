@@ -1,0 +1,10 @@
+{
+  "name": "Remix رحلتي | Rihlaty AI",
+  "description": "مخطط سياحي ذكي مصمم لزيارة الوجهات السعودية التاريخية بمراعاة وقتك، احتياجات الحركة، أوقات الصلاة والطقس والازدحام.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
