@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItineraryResult, Language } from '../types';
+import { ItineraryResult, Language, ItineraryItem } from '../types';
 import { PalmIcon } from './PalmIcon';
 import { getSaudiCityData } from '../data/saudiData';
 import { getGoogleMapsUrl } from '../utils/mapUtils';
@@ -18,136 +18,397 @@ export const TravelBookletDocument: React.FC<TravelBookletDocumentProps> = ({ it
     heritage: { ar: 'معلم تراثي وثقافي', en: 'Heritage Site' },
     cafe: { ar: 'مقهى وضيافة', en: 'Café & Hospitality' },
     dining: { ar: 'وجبة تراثية', en: 'Traditional Dining' },
-    prayer: { ar: 'توقف صلاة 🕌', en: 'Prayer Pause 🕌' },
+    prayer: { ar: 'توقف صلاة', en: 'Prayer Pause' },
     experience: { ar: 'تجربة سياحية', en: 'Tourism Activity' },
     shopping: { ar: 'سوق وحرف يدوية', en: 'Heritage Souk' },
     nature: { ar: 'طبيعة وتضاريس', en: 'Nature & Landscape' },
   };
 
+  // Group items by day Number
+  const itemsByDay: Record<number, ItineraryItem[]> = {};
+  itinerary.items.forEach((item) => {
+    const day = item.dayNumber || 1;
+    if (!itemsByDay[day]) itemsByDay[day] = [];
+    itemsByDay[day].push(item);
+  });
+
+  const daysList = Object.keys(itemsByDay).map(Number).sort((a, b) => a - b);
+
+  // Filter food/dining items for dedicated meal recommendation section
+  const foodItems = itinerary.items.filter(item => item.category === 'dining' || item.category === 'cafe');
+
+  const fontFamily = "'Tajawal', 'Cairo', 'Arial', sans-serif";
+
   return (
     <div
       id="rihlaty-pdf-booklet"
       dir={isRtl ? 'rtl' : 'ltr'}
-      className="w-full bg-white text-[#2B231D] p-6 font-sans border-0 shadow-none"
       style={{
-        fontFamily: isRtl ? "'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', system-ui, sans-serif" : "'Plus Jakarta Sans', system-ui, sans-serif",
+        fontFamily: fontFamily,
+        letterSpacing: 'normal',
+        wordSpacing: 'normal',
         color: '#2B231D',
         backgroundColor: '#FFFFFF',
-        width: '800px',
+        width: '790px',
+        padding: '36px',
         margin: '0 auto',
         boxSizing: 'border-box'
       }}
     >
-      {/* HEADER BAR */}
-      <div className="border-b-2 border-[#4F6F52] pb-4 mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#4F6F52] flex items-center justify-center text-white shrink-0">
-            <PalmIcon className="w-6 h-6 text-[#D6AD72]" />
+      {/* HEADER SECTION */}
+      <div
+        style={{
+          borderBottom: '3px solid #4F6F52',
+          paddingBottom: '20px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '14px',
+              backgroundColor: '#4F6F52',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              flexShrink: 0
+            }}
+          >
+            <PalmIcon className="w-8 h-8 text-[#D6AD72]" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-[#3B2A22]">
-              {isRtl ? 'منصة رحلتي | جدول الرحلة المجهز' : 'Rihlaty AI | Travel Schedule'}
+            <h1
+              style={{
+                fontFamily: fontFamily,
+                fontSize: '22px',
+                fontWeight: 900,
+                color: '#3B2A22',
+                margin: 0,
+                padding: 0,
+                lineHeight: 1.2
+              }}
+            >
+              {isRtl ? 'منصة رحلتي | جدول الرحلة السياحية' : 'Rihlaty AI | Travel Itinerary'}
             </h1>
-            <p className="text-xs font-bold text-[#C58B5C]">
-              {isRtl ? `جدول زيارة: ${cityName}` : `Visit Schedule: ${cityName}`}
+            <p
+              style={{
+                fontFamily: fontFamily,
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#C58B5C',
+                margin: '4px 0 0 0'
+              }}
+            >
+              {isRtl ? `وثيقة جدول زيارة: ${cityName}` : `Visit Itinerary Document: ${cityName}`}
             </p>
           </div>
         </div>
 
-        <div className="text-end text-xs font-semibold text-gray-600">
-          <p>{isRtl ? 'تاريخ الإصدار:' : 'Issued:'} {itinerary.date || new Date().toISOString().split('T')[0]}</p>
-          <p className="text-[#4F6F52] font-bold">{isRtl ? `المدة: ${itinerary.durationAr || 'يوم واحد'}` : `Duration: ${itinerary.durationEn || '1 Day'}`}</p>
+        <div style={{ textAlign: isRtl ? 'left' : 'right', fontSize: '12px', color: '#4B5563' }}>
+          <p style={{ margin: 0, fontWeight: 700, color: '#3B2A22' }}>
+            {isRtl ? 'تاريخ الإصدار:' : 'Issued Date:'} {itinerary.date || new Date().toISOString().split('T')[0]}
+          </p>
+          <p style={{ margin: '4px 0 0 0', color: '#4F6F52', fontWeight: 800 }}>
+            {isRtl ? `المدة الكلية: ${itinerary.durationAr || 'يوم واحد'}` : `Duration: ${itinerary.durationEn || '1 Day'}`}
+          </p>
         </div>
       </div>
 
-      {/* SUMMARY INFO STRIP */}
-      <div className="bg-[#FAF8F3] border border-[#E8D9C5] rounded-xl p-3 mb-5 grid grid-cols-4 gap-2 text-center text-xs">
-        <div>
-          <span className="text-gray-500 font-bold block">{isRtl ? 'الوجهة' : 'Destination'}</span>
-          <span className="font-extrabold text-[#3B2A22]">{isRtl ? (itinerary.destinationNameAr || cityData.nameAr) : (itinerary.destinationNameEn || cityData.nameEn)}</span>
-        </div>
-        <div>
-          <span className="text-gray-500 font-bold block">{isRtl ? 'نسبة ملاءمة الحركة' : 'Mobility Score'}</span>
-          <span className="font-extrabold text-[#4F6F52]">♿ {itinerary.accessibilityScore}%</span>
-        </div>
-        <div>
-          <span className="text-gray-500 font-bold block">{isRtl ? 'درجة الحرارة' : 'Temperature'}</span>
-          <span className="font-extrabold text-[#C58B5C]">{cityData.weather.tempC}°C ☀️</span>
-        </div>
-        <div>
-          <span className="text-gray-500 font-bold block">{isRtl ? 'توقيت أذان الظهر' : 'Dhuhr Prayer'}</span>
-          <span className="font-extrabold text-[#3B2A22]">🕌 {cityData.prayerTimes.dhuhr}</span>
-        </div>
-      </div>
-
-      {/* ITINERARY SIMPLE TABLE */}
-      <div className="mb-6">
-        <h2 className="text-sm font-extrabold text-[#3B2A22] mb-2 border-b border-[#E8D9C5] pb-1">
-          📋 {isRtl ? 'جدول المحطات والتوجيهات (مخطط جدول مبسط)' : 'Simplified Travel Itinerary Table'}
+      {/* SUMMARY / OVERVIEW TABLE */}
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 800, color: '#3B2A22', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>📌 {isRtl ? 'ملخص وبيانات الرحلة الأساسية' : 'Trip Overview & Key Information'}</span>
         </h2>
-
-        <table className="w-full text-xs text-start border-collapse border border-[#E8D9C5]">
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '12px',
+            backgroundColor: '#FAF8F3',
+            border: '1px solid #E8D9C5',
+            borderRadius: '12px',
+            overflow: 'hidden'
+          }}
+        >
           <thead>
-            <tr className="bg-[#3B2A22] text-white font-bold">
-              <th className="p-2.5 border border-[#3B2A22] text-center w-20">{isRtl ? 'الوقت' : 'Time'}</th>
-              <th className="p-2.5 border border-[#3B2A22] text-start">{isRtl ? 'المحطة / الوجهة' : 'Stop / Destination'}</th>
-              <th className="p-2.5 border border-[#3B2A22] text-start">{isRtl ? 'الموقع' : 'Location'}</th>
-              <th className="p-2.5 border border-[#3B2A22] text-center w-28">{isRtl ? 'التصنيف' : 'Category'}</th>
-              <th className="p-2.5 border border-[#3B2A22] text-center w-28">{isRtl ? 'التيسير' : 'Accessibility'}</th>
-              <th className="p-2.5 border border-[#3B2A22] text-center w-36">{isRtl ? 'موقع قوقل ماب' : 'Google Maps'}</th>
+            <tr style={{ backgroundColor: '#4F6F52', color: '#FFFFFF', textAlign: isRtl ? 'right' : 'left' }}>
+              <th style={{ padding: '10px 14px', border: '1px solid #3B543D' }}>{isRtl ? 'اليوم والتاريخ' : 'Day & Date'}</th>
+              <th style={{ padding: '10px 14px', border: '1px solid #3B543D' }}>{isRtl ? 'الوجهة والمنطقة' : 'Destination'}</th>
+              <th style={{ padding: '10px 14px', border: '1px solid #3B543D' }}>{isRtl ? 'نسبة ملاءمة الحركة' : 'Mobility Score'}</th>
+              <th style={{ padding: '10px 14px', border: '1px solid #3B543D' }}>{isRtl ? 'الطقس وأوقات الصلاة' : 'Weather & Prayer'}</th>
             </tr>
           </thead>
           <tbody>
-            {itinerary.items.map((item, idx) => {
-              const isPrayer = item.isPrayerTime;
-              const catObj = categoryLabels[item.category] || { ar: 'محطة رحلة', en: 'Stop' };
-              const mapUrl = getGoogleMapsUrl(isRtl ? item.locationAr : item.locationEn, isRtl ? item.titleAr : item.titleEn, isRtl ? itinerary.destinationNameAr : itinerary.destinationNameEn, item.coordinates, item.googleMapsUrl);
-
-              return (
-                <tr
-                  key={item.id || idx}
-                  className={isPrayer ? 'bg-amber-50/80 font-semibold' : (idx % 2 === 0 ? 'bg-white' : 'bg-[#FAF8F3]')}
-                >
-                  <td className="p-2.5 border border-[#E8D9C5] text-center font-bold text-[#3B2A22] whitespace-nowrap">
-                    ⏱️ {item.time}
-                  </td>
-                  <td className="p-2.5 border border-[#E8D9C5]">
-                    <div className="font-bold text-[#3B2A22]">
-                      {isRtl ? item.titleAr : item.titleEn}
-                    </div>
-                    <div className="text-[10px] text-gray-600 mt-0.5">
-                      {isRtl ? item.aiRationaleAr : item.aiRationaleEn}
-                    </div>
-                  </td>
-                  <td className="p-2.5 border border-[#E8D9C5] text-[#4F6F52] font-semibold whitespace-nowrap">
-                    📍 {isRtl ? item.locationAr : item.locationEn}
-                  </td>
-                  <td className="p-2.5 border border-[#E8D9C5] text-center whitespace-nowrap font-medium">
-                    {isRtl ? catObj.ar : catObj.en}
-                  </td>
-                  <td className="p-2.5 border border-[#E8D9C5] text-center whitespace-nowrap font-bold text-[#4F6F52]">
-                    {item.isWheelchairAccessible ? '♿ متاح بدون درجات' : 'ميسر'}
-                  </td>
-                  <td className="p-2.5 border border-[#E8D9C5] text-center whitespace-nowrap">
-                    <a
-                      href={mapUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#4F6F52] underline font-bold text-[10px]"
-                    >
-                      🗺️ {isRtl ? 'رابط الخريطة' : 'Map Link'}
-                    </a>
-                  </td>
-                </tr>
-              );
-            })}
+            <tr>
+              <td style={{ padding: '10px 14px', border: '1px solid #E8D9C5', fontWeight: 700, color: '#3B2A22' }}>
+                {itinerary.date || new Date().toISOString().split('T')[0]} ({itinerary.durationAr || 'يوم واحد'})
+              </td>
+              <td style={{ padding: '10px 14px', border: '1px solid #E8D9C5', fontWeight: 800, color: '#3B2A22' }}>
+                {isRtl ? (itinerary.destinationNameAr || cityData.nameAr) : (itinerary.destinationNameEn || cityData.nameEn)}
+              </td>
+              <td style={{ padding: '10px 14px', border: '1px solid #E8D9C5', fontWeight: 700, color: '#4F6F52' }}>
+                ♿ {itinerary.accessibilityScore}% ({isRtl ? 'ميسّر لكبار السن' : 'Elderly Friendly'})
+              </td>
+              <td style={{ padding: '10px 14px', border: '1px solid #E8D9C5', color: '#374151' }}>
+                ☀️ {cityData.weather.tempC}°C | 🕌 {isRtl ? 'الظهر:' : 'Dhuhr:'} {cityData.prayerTimes.dhuhr}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
 
+      {/* SUMMARY OVERVIEW TEXT */}
+      {itinerary.summaryAr && (
+        <div style={{ marginBottom: '24px', padding: '12px 16px', backgroundColor: '#FAF8F3', borderLeft: isRtl ? 'none' : '4px solid #4F6F52', borderRight: isRtl ? '4px solid #4F6F52' : 'none', borderTop: '1px solid #E8D9C5', borderBottom: '1px solid #E8D9C5', borderRadius: '8px', fontSize: '12px', color: '#3B2A22', lineHeight: '1.6' }}>
+          <strong>💡 {isRtl ? 'إرشاد الخطة والتنقّل:' : 'Plan Overview:'} </strong>
+          {isRtl ? itinerary.summaryAr : itinerary.summaryEn}
+        </div>
+      )}
+
+      {/* DETAILED ITINERARY TABLES BY DAY */}
+      {daysList.map((dayNum) => {
+        const dayItems = itemsByDay[dayNum];
+        return (
+          <div key={dayNum} style={{ marginBottom: '28px' }}>
+            <div
+              style={{
+                backgroundColor: '#3B2A22',
+                color: '#FFFFFF',
+                padding: '8px 16px',
+                borderRadius: '8px 8px 0 0',
+                fontSize: '14px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>📅 {isRtl ? `اليوم ${dayNum}: جدول المحطات والتنقل في ${cityName}` : `Day ${dayNum}: Itinerary & Stops in ${cityName}`}</span>
+              <span style={{ fontSize: '11px', color: '#D6AD72', fontWeight: 700 }}>
+                {dayItems.length} {isRtl ? 'محطات متتابعة' : 'Stops'}
+              </span>
+            </div>
+
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '12px',
+                border: '1px solid #E8D9C5',
+                boxSizing: 'border-box'
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: '#FAF8F3', color: '#3B2A22', fontWeight: 800, textAlign: isRtl ? 'right' : 'left' }}>
+                  <th style={{ padding: '10px', border: '1px solid #E8D9C5', width: '85px' }}>{isRtl ? 'الوقت' : 'Time'}</th>
+                  <th style={{ padding: '10px', border: '1px solid #E8D9C5', width: '180px' }}>{isRtl ? 'الوجهة / المعلم' : 'Destination / Activity'}</th>
+                  <th style={{ padding: '10px', border: '1px solid #E8D9C5' }}>{isRtl ? 'الأنشطة الموصى بها والتفاصيل' : 'Recommended Activities & Rationale'}</th>
+                  <th style={{ padding: '10px', border: '1px solid #E8D9C5', width: '170px' }}>{isRtl ? 'التنقل والموقع' : 'Transportation & Location'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dayItems.map((item, idx) => {
+                  const isPrayer = item.isPrayerTime;
+                  const catObj = categoryLabels[item.category] || { ar: 'محطة سياحية', en: 'Stop' };
+                  const mapUrl = getGoogleMapsUrl(
+                    isRtl ? item.locationAr : item.locationEn,
+                    isRtl ? item.titleAr : item.titleEn,
+                    isRtl ? itinerary.destinationNameAr : itinerary.destinationNameEn,
+                    item.coordinates,
+                    item.googleMapsUrl
+                  );
+
+                  return (
+                    <tr
+                      key={item.id || idx}
+                      style={{
+                        backgroundColor: isPrayer ? '#FEF3C7' : (idx % 2 === 0 ? '#FFFFFF' : '#FAF8F3')
+                      }}
+                    >
+                      {/* Time */}
+                      <td style={{ padding: '10px', border: '1px solid #E8D9C5', verticalAlign: 'top', fontWeight: 800, color: '#3B2A22', textAlign: 'center' }}>
+                        <div style={{ backgroundColor: '#FAF8F3', border: '1px solid #E8D9C5', padding: '4px 6px', borderRadius: '6px', fontSize: '11px' }}>
+                          ⏱️ {item.time}
+                        </div>
+                      </td>
+
+                      {/* Destination Name & Category */}
+                      <td style={{ padding: '10px', border: '1px solid #E8D9C5', verticalAlign: 'top' }}>
+                        <div style={{ fontWeight: 800, color: '#3B2A22', fontSize: '13px', marginBottom: '4px' }}>
+                          {isRtl ? item.titleAr : item.titleEn}
+                        </div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            backgroundColor: '#E8D9C5',
+                            color: '#3B2A22'
+                          }}
+                        >
+                          {isRtl ? catObj.ar : catObj.en}
+                        </span>
+                      </td>
+
+                      {/* Recommended Activities & Details */}
+                      <td style={{ padding: '10px', border: '1px solid #E8D9C5', verticalAlign: 'top', color: '#374151', lineHeight: '1.5' }}>
+                        <p style={{ margin: '0 0 6px 0', fontWeight: 600 }}>
+                          💡 {isRtl ? item.aiRationaleAr : item.aiRationaleEn}
+                        </p>
+                        {item.distanceAr && (
+                          <div style={{ fontSize: '11px', color: '#6B7280' }}>
+                            🚗 {isRtl ? `المسافة المقدرة: ${item.distanceAr}` : `Distance: ${item.distanceEn}`}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Transportation & Location */}
+                      <td style={{ padding: '10px', border: '1px solid #E8D9C5', verticalAlign: 'top', fontSize: '11px' }}>
+                        <div style={{ fontWeight: 700, color: '#4F6F52', marginBottom: '4px' }}>
+                          📍 {isRtl ? item.locationAr : item.locationEn}
+                        </div>
+                        <div style={{ color: '#4B5563', marginBottom: '6px' }}>
+                          ♿ {item.isWheelchairAccessible ? (isRtl ? 'ميسّر لكبار السن والكراسي' : 'Accessible') : (isRtl ? 'تيسير متوسط' : 'Moderate Access')}
+                        </div>
+                        {item.mobilityNoteAr && (
+                          <div style={{ color: '#7C2D12', fontSize: '10px', marginBottom: '6px', backgroundColor: '#FFEDD5', padding: '3px 6px', borderRadius: '4px' }}>
+                            ℹ️ {isRtl ? item.mobilityNoteAr : item.mobilityNoteEn}
+                          </div>
+                        )}
+                        <a
+                          href={mapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-block',
+                            color: '#3B2A22',
+                            fontWeight: 800,
+                            textDecoration: 'underline',
+                            fontSize: '11px'
+                          }}
+                        >
+                          🗺️ {isRtl ? 'رابط الخريطة' : 'Google Maps Link'}
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {/* MEAL & FOOD RECOMMENDATIONS TABLE */}
+      {foodItems.length > 0 && (
+        <div style={{ marginBottom: '28px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#3B2A22', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>☕🍽️ {isRtl ? 'توصيات الوجبات والتجارب والمقاهي' : 'Meal & Dining Recommendations'}</span>
+          </h3>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '12px',
+              border: '1px solid #E8D9C5'
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: '#C58B5C', color: '#FFFFFF', textAlign: isRtl ? 'right' : 'left' }}>
+                <th style={{ padding: '8px 12px', border: '1px solid #A87146', width: '90px' }}>{isRtl ? 'الوقت' : 'Time'}</th>
+                <th style={{ padding: '8px 12px', border: '1px solid #A87146', width: '180px' }}>{isRtl ? 'اسم المطعم / المقهى' : 'Place Name'}</th>
+                <th style={{ padding: '8px 12px', border: '1px solid #A87146' }}>{isRtl ? 'نوع الوجبة والتوصية' : 'Recommendation Details'}</th>
+                <th style={{ padding: '8px 12px', border: '1px solid #A87146', width: '150px' }}>{isRtl ? 'الموقع والخريطة' : 'Location & Map'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {foodItems.map((item, idx) => {
+                const mapUrl = getGoogleMapsUrl(
+                  isRtl ? item.locationAr : item.locationEn,
+                  isRtl ? item.titleAr : item.titleEn,
+                  isRtl ? itinerary.destinationNameAr : itinerary.destinationNameEn,
+                  item.coordinates,
+                  item.googleMapsUrl
+                );
+
+                return (
+                  <tr key={item.id || idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#FAF8F3' }}>
+                    <td style={{ padding: '8px 12px', border: '1px solid #E8D9C5', fontWeight: 800, textAlign: 'center' }}>
+                      {item.time}
+                    </td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #E8D9C5', fontWeight: 800, color: '#3B2A22' }}>
+                      {isRtl ? item.titleAr : item.titleEn}
+                    </td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #E8D9C5', color: '#374151' }}>
+                      {isRtl ? item.aiRationaleAr : item.aiRationaleEn}
+                    </td>
+                    <td style={{ padding: '8px 12px', border: '1px solid #E8D9C5', color: '#4F6F52', fontWeight: 700 }}>
+                      <div style={{ marginBottom: '4px' }}>📍 {isRtl ? item.locationAr : item.locationEn}</div>
+                      <a href={mapUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#3B2A22', textDecoration: 'underline' }}>
+                        🗺️ {isRtl ? 'رابط الخريطة' : 'Map Link'}
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ADDITIONAL IMPORTANT ITINERARY INFORMATION */}
+      <div
+        style={{
+          backgroundColor: '#FAF8F3',
+          border: '1px solid #E8D9C5',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '24px',
+          fontSize: '12px'
+        }}
+      >
+        <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 800, color: '#3B2A22' }}>
+          ℹ️ {isRtl ? 'إرشادات هامة ومعلومات إضافية للرحلة:' : 'Important Itinerary Notes:'}
+        </h4>
+        <ul style={{ margin: 0, paddingRight: isRtl ? '20px' : '0', paddingLeft: isRtl ? '0' : '20px', color: '#4B5563', lineHeight: '1.7' }}>
+          <li>
+            <strong>{isRtl ? 'أوقات الصلاة:' : 'Prayer Times:'}</strong> {isRtl ? `تمت مراعاة توقيت أذان الظهر (${cityData.prayerTimes.dhuhr}) والعصر (${cityData.prayerTimes.asr}) بالقرب من المساجد التاريخية والجوامع الرئيسية.` : `Dhuhr (${cityData.prayerTimes.dhuhr}) and Asr (${cityData.prayerTimes.asr}) prayers are scheduled near historic mosques.`}
+          </li>
+          <li>
+            <strong>{isRtl ? 'التنقل والراحة:' : 'Transportation:'}</strong> {isRtl ? 'يُنصح باستخدام سيارات الأجرة الذكية أو التنقل المباشر وتجنب التعرض للشمس المباشرة في أوقات الظهيرة.' : 'Use rideshare apps and avoid direct noon heat during walking tours.'}
+          </li>
+          <li>
+            <strong>{isRtl ? 'كبار السن ومستخدمي الكراسي:' : 'Mobility:'}</strong> {isRtl ? 'المحطات المحددة بعلامة ♿ مجهزة بممرات مستوية ومصاعد تيسر حركة كبار السن وعربات الأطفال.' : 'Stops with ♿ indicator provide step-free access and ramps for elderly visitors.'}
+          </li>
+        </ul>
+      </div>
+
       {/* FOOTER */}
-      <div className="border-t border-[#E8D9C5] pt-3 text-center text-[10px] text-gray-500 font-semibold">
-        <p>{isRtl ? 'تم الإنشاء بواسطة منصة رحلتي AI | جميع المحطات مجهزة ومزامنة مع أوقات الصلاة والطقس المحلي.' : 'Generated by Rihlaty AI | All stops synced with prayer times & local weather.'}</p>
+      <div
+        style={{
+          borderTop: '2px solid #E8D9C5',
+          paddingTop: '16px',
+          textAlign: 'center',
+          fontSize: '11px',
+          color: '#6B7280',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          {isRtl ? 'تم إنشاؤه عبر منصة رحلتي AI - المملكة العربية السعودية' : 'Generated via Rihlaty AI Platform - Kingdom of Saudi Arabia'}
+        </p>
+        <p style={{ margin: 0, color: '#4F6F52', fontWeight: 700 }}>rihlaty.sa</p>
       </div>
     </div>
   );

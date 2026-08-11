@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 import { 
-  Clock, MapPin, Accessibility, Sun, Users, Sparkles, Share2, Download, 
-  RefreshCw, CheckCircle2, Bookmark, Filter, ExternalLink, ShieldAlert, Heart, ShieldCheck, Loader2, CloudSun, Calendar
+  Clock, MapPin, Accessibility, Sun, Users, Sparkles, Download, Loader2,
+  RefreshCw, CheckCircle2, Filter, ExternalLink, ShieldAlert, Heart, ShieldCheck, CloudSun, Calendar
 } from 'lucide-react';
 import { ItineraryResult, Language, ItineraryItem } from '../types';
 import { translations } from '../data/translations';
@@ -28,7 +30,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
 
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [selectedDayFilter, setSelectedDayFilter] = useState<number | 'all'>('all');
-  const [copiedLink, setCopiedLink] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
 
@@ -58,20 +59,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
     return true;
   });
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: itinerary.destinationNameAr,
-        text: itinerary.summaryAr,
-        url: window.location.href,
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 3000);
-    }
-  };
-
   const cleanSource = (rawSource?: string) => {
     if (!rawSource) return '';
     return rawSource
@@ -84,95 +71,125 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
     if (isExporting) return;
     setIsExporting(true);
 
+    const bookletContainer = document.getElementById('rihlaty-pdf-booklet-container');
+
     try {
-      // High performance export using dedicated off-screen Travel Booklet element
-      const bookletElement = document.getElementById('rihlaty-pdf-booklet-container');
-      
-      if (bookletElement) {
-        // Position booklet safely inside viewport for canvas rendering without visual disruption
-        bookletElement.style.display = 'block';
-        bookletElement.style.position = 'fixed';
-        bookletElement.style.top = '0px';
-        bookletElement.style.left = '0px';
-        bookletElement.style.zIndex = '-9999';
-        bookletElement.style.opacity = '1';
-        bookletElement.style.pointerEvents = 'none';
-        bookletElement.style.width = '800px';
+      if (!bookletContainer) {
+        throw new Error('Booklet container not found');
+      }
 
-        const sanitizedName = (itinerary.destinationNameEn || 'Saudi_Heritage')
-          .replace(/[^a-zA-Z0-9]/g, '_')
-          .replace(/_+/g, '_');
+      // Display offscreen so dimensions can be rendered without appearing on screen
+      bookletContainer.style.display = 'block';
+      bookletContainer.style.position = 'absolute';
+      bookletContainer.style.left = '-9999px';
+      bookletContainer.style.top = '0px';
+      bookletContainer.style.width = '800px';
 
-        const fileName = `Rihlaty_${sanitizedName}_Booklet.pdf`;
+      const exportTarget = (bookletContainer.firstElementChild as HTMLElement) || bookletContainer;
 
-        const opt = {
-          margin: 0.2,
-          filename: fileName,
-          image: { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas: { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false,
-            letterRendering: true,
-            windowWidth: 800,
-            scrollX: 0,
-            scrollY: 0
-          },
-          jsPDF: { unit: 'in' as const, format: 'a4' as const, orientation: 'portrait' as const },
-          pagebreak: { mode: ['avoid-all' as const, 'css' as const] }
-        };
+      // Brief pause for DOM rendering
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
-        const exportTarget = (bookletElement.firstElementChild as HTMLElement) || bookletElement;
-        
-        // Resolve html2pdf function safely in all JS/module environments
-        const h2pFunc = (typeof (window as any).html2pdf === 'function' ? (window as any).html2pdf : null) ||
-                        (typeof html2pdf === 'function' ? html2pdf : null) ||
-                        (html2pdf && typeof (html2pdf as any).default === 'function' ? (html2pdf as any).default : null);
+      const sanitizedName = (itinerary.destinationNameEn || itinerary.destinationNameAr || 'Saudi_Heritage')
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_');
+
+      const fileName = `Rihlaty_${sanitizedName}_Itinerary.pdf`;
+
+      // Render offscreen container to canvas safely without oklch parsing issues
+      const canvas = await html2canvas(exportTarget, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 800,
+        onclone: (clonedDoc) => {
+          try {
+            // Remove/replace any oklch color functions in style sheets that trigger html2canvas CSS parser errors
+            const styles = Array.from(clonedDoc.querySelectorAll('style'));
+            styles.forEach((style) => {
+              if (style.textContent && style.textContent.includes('oklch')) {
+                style.textContent = style.textContent.replace(/oklch\([^)]+\)/g, '#666666');
+              }
+            });
+
+            // Ensure cloned booklet container uses clean inline colors
+            const booklet = clonedDoc.getElementById('rihlaty-pdf-booklet') || clonedDoc.getElementById('rihlaty-pdf-booklet-container');
+            if (booklet) {
+              const allEls = Array.from(booklet.querySelectorAll('*'));
+              allEls.forEach((node) => {
+                if (node instanceof HTMLElement) {
+                  if (node.style.color && node.style.color.includes('oklch')) {
+                    node.style.color = '#2B231D';
+                  }
+                  if (node.style.backgroundColor && node.style.backgroundColor.includes('oklch')) {
+                    node.style.backgroundColor = '#FFFFFF';
+                  }
+                  if (node.style.borderColor && node.style.borderColor.includes('oklch')) {
+                    node.style.borderColor = '#E8D9C5';
+                  }
+                }
+              });
+            }
+          } catch {
+            // Ignore cloning sanitization errors
+          }
+        }
+      });
+
+      // Construct high quality PDF document
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const ratio = pdfWidth / imgWidth;
+      const calculatedImgHeight = imgHeight * ratio;
+
+      let heightLeft = calculatedImgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, calculatedImgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - calculatedImgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, calculatedImgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      // Download PDF file directly
+      pdf.save(fileName);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      // Secondary fallback
+      try {
+        let h2pFunc: any = null;
+        if (typeof (window as any).html2pdf === 'function') h2pFunc = (window as any).html2pdf;
+        else if (typeof html2pdf === 'function') h2pFunc = html2pdf;
+        else if (html2pdf && typeof (html2pdf as any).default === 'function') h2pFunc = (html2pdf as any).default;
 
         if (typeof h2pFunc === 'function') {
-          await h2pFunc().set(opt).from(exportTarget).save();
+          const exportTarget = (bookletContainer?.firstElementChild as HTMLElement) || bookletContainer;
+          await h2pFunc().from(exportTarget).save();
         } else {
-          // Fallback direct HTML document download with print trigger
-          const content = exportTarget.outerHTML;
-          const blob = new Blob([`
-            <!DOCTYPE html>
-            <html dir="${isRtl ? 'rtl' : 'ltr'}">
-            <head>
-              <meta charset="utf-8">
-              <title>${isRtl ? itinerary.destinationNameAr : itinerary.destinationNameEn} - Rihlaty Booklet</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-            </head>
-            <body class="bg-gray-100 p-6">
-              ${content}
-              <script>
-                window.onload = function() { window.print(); }
-              </script>
-            </body>
-            </html>
-          `], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `Rihlaty_${sanitizedName}_Booklet.html`;
-          a.click();
-          URL.revokeObjectURL(url);
+          window.print();
         }
-
-        // Restore hidden state
-        bookletElement.style.display = 'none';
-        bookletElement.style.position = 'static';
-      } else {
+      } catch {
         window.print();
       }
-    } catch (err) {
-      console.warn('PDF Export fallback triggered:', err);
-      window.print();
     } finally {
-      const bookletElement = document.getElementById('rihlaty-pdf-booklet-container');
-      if (bookletElement) {
-        bookletElement.style.display = 'none';
-        bookletElement.style.position = 'static';
+      if (bookletContainer) {
+        bookletContainer.style.display = 'none';
       }
       setIsExporting(false);
     }
@@ -214,19 +231,12 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2 print:hidden">
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F3] dark:bg-[#30251E] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] text-xs font-bold border border-[#F3E6D0] dark:border-[#493A2F] transition-colors"
-              >
-                <Share2 className="w-3.5 h-3.5 text-[#C58B5C] dark:text-[#D6AD72]" />
-                <span>{copiedLink ? (lang === 'ar' ? 'تم النسخ!' : 'Copied!') : t.shareTrip}</span>
-              </button>
-
+            <div className="flex flex-wrap items-center gap-2 print:hidden">
               <button
                 onClick={handleExportPdf}
                 disabled={isExporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8F3] dark:bg-[#30251E] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] text-xs font-bold border border-[#F3E6D0] dark:border-[#493A2F] transition-colors print:hidden disabled:opacity-60 cursor-pointer"
+                title={lang === 'ar' ? 'تحميل كملف PDF' : 'Download PDF file'}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#FAF8F3] dark:bg-[#30251E] hover:bg-[#F3E6D0] dark:hover:bg-[#493A2F] text-[#3B2A22] dark:text-[#FAF8F3] text-xs font-bold border border-[#F3E6D0] dark:border-[#493A2F] transition-colors cursor-pointer disabled:opacity-60 shadow-xs"
               >
                 {isExporting ? (
                   <>
@@ -236,14 +246,14 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
                 ) : (
                   <>
                     <Download className="w-3.5 h-3.5 text-[#C58B5C] dark:text-[#D6AD72]" />
-                    <span>{t.exportPdf}</span>
+                    <span>{lang === 'ar' ? 'تحميل PDF' : 'Download PDF'}</span>
                   </>
                 )}
               </button>
 
               <button
                 onClick={onReplan}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#4F6F52] text-white hover:bg-[#3B2A22] dark:hover:bg-[#C58B5C] text-xs font-bold transition-colors print:hidden"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#4F6F52] text-white hover:bg-[#3B2A22] dark:hover:bg-[#C58B5C] text-xs font-bold transition-colors cursor-pointer print:hidden"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>{t.replan}</span>
@@ -573,11 +583,6 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
 
       </div>
 
-      {/* Hidden dedicated element for ultra-fast, creative PDF export */}
-      <div id="rihlaty-pdf-booklet-container" style={{ display: 'none' }}>
-        <TravelBookletDocument itinerary={itinerary} lang={lang} />
-      </div>
-
       {/* Weather Modal powered by ArabiaWeather */}
       <WeatherModal
         cityData={cityData}
@@ -585,6 +590,21 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({ itinerary, lang, o
         onClose={() => setIsWeatherModalOpen(false)}
         lang={lang}
       />
+
+      {/* Offscreen Travel Booklet container for PDF generator */}
+      <div 
+        id="rihlaty-pdf-booklet-container" 
+        style={{ 
+          position: 'absolute', 
+          left: '-9999px', 
+          top: '0', 
+          width: '800px', 
+          backgroundColor: '#ffffff',
+          display: 'none' 
+        }}
+      >
+        <TravelBookletDocument itinerary={itinerary} lang={lang} />
+      </div>
     </section>
   );
 };

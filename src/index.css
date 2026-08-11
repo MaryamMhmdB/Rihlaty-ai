@@ -44,20 +44,28 @@
 
 /* Print Styles for PDF Export (Saves ONLY the generated plan) */
 @media print {
-  /* Hide all non-printable layout elements */
   body {
     background: #ffffff !important;
     color: #1a1a1a !important;
   }
 
-  body > div > *:not(#itinerary-results-container) {
-    display: none !important;
-  }
-
+  /* Hide navigation, footers, interactive buttons during print */
   nav, footer, button, .print\:hidden {
     display: none !important;
   }
 
+  /* When printing booklet container explicitly */
+  #rihlaty-pdf-booklet-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+  }
+
+  #itinerary-results,
   #itinerary-results-container {
     display: block !important;
     width: 100% !important;
@@ -67,18 +75,20 @@
     color: #1a1a1a !important;
   }
 
-  /* Reset colors & shadows for high quality print / PDF */
-  .dark #itinerary-results-container * {
+  /* Reset dark mode colors for print */
+  .dark #itinerary-results *,
+  .dark #itinerary-results-container *,
+  .dark #rihlaty-pdf-booklet-container * {
     color: #1a1a1a !important;
     background-color: transparent !important;
     border-color: #d1d5db !important;
     box-shadow: none !important;
   }
 
-  #itinerary-results-container .printable-card {
+  .printable-card {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-    background: #f9fafb !important;
+    background: #ffffff !important;
     border: 1px solid #e5e7eb !important;
     margin-bottom: 12px !important;
   }
